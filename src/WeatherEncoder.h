@@ -7,6 +7,7 @@ using namespace std;
 /*TODO: sync()
         header mantissa
         overloading setUpdate( weatherUpdate_t* update, int n_updates)
+        safety
 */ 
 
 
@@ -28,7 +29,7 @@ typedef struct {
   int temp_mantissa;
   int humidity; 
   int pressure; bool pressure_sgn;
-  bool last_upate;// used only by the decoder
+  bool last_update;// used only by the decoder
 }weatherUpdate_t;
 
 typedef struct
@@ -50,13 +51,13 @@ class WeatherEncoder{
 
   public:
     WeatherEncoder(codingOpt_t opt);
-    bool setInitTimeStamp(time_t time);
-    bool setInitWeather(int init_w);
-    bool setInitTemp(int temp, int temp_mantissa = 0);
-    bool setInitHumidity(int humidity);
-    bool setInitPressure(int pressure);
-    bool setUpdate( weatherUpdate_t update);
-    bool sync();// to be implemted
+    void setInitTimeStamp(time_t time);
+    void setInitWeather(int init_w);
+    void setInitTemp(int temp, int temp_mantissa = 0);
+    void setInitHumidity(int humidity);
+    void setInitPressure(int pressure);
+    void setUpdate( weatherUpdate_t update);
+    void sync();// to be implemted
     string getEncoded();
 
   private:
@@ -71,8 +72,8 @@ class WeatherEncoder{
   void _putInBuffer(string in_data);
   unsigned int _byteToUint(char *bits);
   unsigned int _byteToUint(string bits);
-  bool _writeHeader(string header_bin);
-  bool _emptyBuffer();
+  void _writeHeader(string header_bin);
+  void _emptyBuffer();
 
 };
 
@@ -92,53 +93,48 @@ WeatherEncoder::WeatherEncoder(codingOpt_t opt){
   this->last_header_indx = 0;
 }
 
-bool WeatherEncoder::setInitTimeStamp( time_t time ){
+void WeatherEncoder::setInitTimeStamp( time_t time ){
   this->last_header.timestamp = time ;
-  return true;
 }
 
-bool WeatherEncoder::setInitWeather(int init_w ){
+void WeatherEncoder::setInitWeather(int init_w ){
   if ( !this->last_header.encode_weather){
-    return false; 
+    //TODO, warning
   }
   if ( init_w > 15 ){
-    return false; // protocol error
+    //TODO, warning
   }
   this->last_header.weather_init = init_w;
-  return true;
 }
 
-bool WeatherEncoder::setInitTemp(int temp, int temp_mantissa){
+void WeatherEncoder::setInitTemp(int temp, int temp_mantissa){
   if ( ! this->last_header.encode_temp){
-    return false;
+    //TODO, warning
   }
   if ( temp > 127){
-    return false; // max temp 127 
+    //TODO, warning
   }
   this->last_header.temp_init = temp;
   if ( this->last_header.encode_temp_long ){
     this->last_header.temp_init_mantissa = temp_mantissa;
   }
-  return true;
 }
  
-bool WeatherEncoder::setInitHumidity(int humidity){
+void WeatherEncoder::setInitHumidity(int humidity){
   if (! this->last_header.encode_humidity){
-    return false;
+    //TODO, warning
   }
   if ( humidity > 31 ){
-    return false;
+    //TODO, warning
   }
   this->last_header.humidity_init = humidity;
-  return true;
 }
 
-bool WeatherEncoder::setInitPressure(int pressure){
+void WeatherEncoder::setInitPressure(int pressure){
   if ( !this->last_header.encode_pressure ){
-    return false;
+    //TODO, warning
   }
   this->last_header.pressure_init = pressure;
-  return true;
 }
 
 unsigned int WeatherEncoder::_byteToUint(char* bits){
@@ -174,8 +170,9 @@ void WeatherEncoder::_putInBuffer(string in_data){
   
 }
 
-bool WeatherEncoder::sync(){
+void WeatherEncoder::sync(){
 /* to be implemented */
+  
 }
 
 
@@ -199,7 +196,7 @@ T adder(T first, Args... args) {
   return first + adder(args...);
 }
 
-bool WeatherEncoder::_writeHeader(string header_bin){
+void WeatherEncoder::_writeHeader(string header_bin){
   string str;
   unsigned int c = 0;
   string cs;
@@ -214,7 +211,7 @@ bool WeatherEncoder::_writeHeader(string header_bin){
   }
 }
 
-bool WeatherEncoder::_emptyBuffer(){
+void WeatherEncoder::_emptyBuffer(){
   unsigned int c =0;
   if(this->buffer_indx != 0){
     for (int i= buffer_indx; i <= 7; i++){
@@ -253,7 +250,7 @@ string WeatherEncoder::getEncoded()
   return out_s;
 }
 
-bool WeatherEncoder::setUpdate(weatherUpdate_t update){
+void WeatherEncoder::setUpdate(weatherUpdate_t update){
   char k;
   string j;
   if (this->last_header.encode_weather){
@@ -457,12 +454,14 @@ weatherUpdate_t WeatherDecoder::getNext(){
     update = this->_readUpdate();
     this->remaining_updt--;
     if(remaining_updt == 0){
-      update.last_upate = true;
+      update.last_update = true;
+    }else{
+      update.last_update = false;
     }
     return update;
   }else {
     weatherUpdate_t broken;
-    broken.last_upate = true;
+    broken.last_update = true;
     return broken;
   }
 }
