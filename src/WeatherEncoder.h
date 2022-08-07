@@ -240,7 +240,7 @@ string WeatherEncoder::getEncoded()
   bitset<8> bPx = this->last_header.pressure_init;
   header_bin = adder(bTime.to_string(), bDelta.to_string(), bToNxtSync.to_string(), bC.to_string(), bW.to_string(),bT.to_string(), bH.to_string(), bPx.to_string());
   this->_writeHeader(header_bin);
-  //empty the buffser 
+  //empty the buffer 
   this->_emptyBuffer();
   string out_s;
   uint8_t ranz;
@@ -312,8 +312,8 @@ private:
   void _buildHeader();
   void _decodeHeader();
   string _readBuffer(int n_bits);
-  bool data_is_valid; // just check size 
-  bool header_is_valid;
+  bool data_is_valid = true; // just check size TODO: improve
+  bool header_is_valid = true;
   uint8_t update_size; // size of a single update [bit]
   void _getUpdateSize();
   string _buffer;
