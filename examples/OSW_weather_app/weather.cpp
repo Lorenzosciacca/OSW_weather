@@ -131,6 +131,27 @@ void OswAppWeather::drawLayout(){
     this->hal->gfx()->drawVLine(75,60,110,rgb888(255,255,255));
 }
 
+void OswAppWeather::printLastUpdate(){
+    this->hal->gfx()->setFont(nullptr);  
+    this->hal->gfx()->setTextCursor(120 , 225);
+    this->hal->gfx()->print(init_time_dd_mm_yyyy);
+}
+
+void OswAppWeather::printDate(){
+    //TODO: multiple days-> scrolling menu
+    this->hal->gfx()->setFont(&DS_DIGI12pt7b);    
+    this->hal->gfx()->setTextCursor(40 , 91);
+    this->hal->gfx()->print(init_time_mm_dd);
+    this->hal->gfx()->setTextCursor(40 , 120);
+    time_t time = this->init_timestamp;
+    time = time + (86400);
+    strftime(this->date_mm_dd[1], sizeof(this->date_mm_dd[1]),"%d/%m",localtime(&time));
+    this->hal->gfx()->print(date_mm_dd[1]);
+    time = time + (86400);
+    this->hal->gfx()->setTextCursor(40 , 149);
+    strftime(this->date_mm_dd[2], sizeof(this->date_mm_dd[2]),"%d/%m",localtime(&time));
+    this->hal->gfx()->print(date_mm_dd[2]);
+}
 
 bool OswAppWeather::loadData(){ 
     Serial.println("Print weather content: ");
@@ -164,9 +185,6 @@ bool OswAppWeather::loadData(){
     }
 return true;
 }
-
-
-
 
 
 void OswAppWeather::drawWeatherIcon(){
@@ -267,6 +285,8 @@ void OswAppWeather::drawWeather(){
     this->hal->gfx()->print(buffer);
 }
 
+
+
 void OswAppWeather::setup() {
     this->loadData();
 }
@@ -284,6 +304,8 @@ void OswAppWeather::loop() {
     }
     this->drawLayout();
     this->drawWeather();   
+    this->printDate();
+    this->printLastUpdate();
     this->hal->requestFlush(); 
 }
 
