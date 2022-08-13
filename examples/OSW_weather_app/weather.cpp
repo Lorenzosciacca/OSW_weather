@@ -114,82 +114,9 @@ void OswAppWeather::drawFog(int x, int y, int mist_fog)
     }
 }
 
-void OswAppWeather::drawLayout(){
-    this->hal->gfx()->setFont(nullptr);
-    this->hal->gfx()->setTextCursor(120 , 215);
-    this->hal->gfx()->setTextMiddleAligned();
-    this->hal->gfx()->setTextCenterAligned();
-    this->hal->gfx()->print("last sync:");
-    //arrows
-    //up
-    this->hal->gfx()->drawTriangle(180,50, 190,40, 200,50,rgb888(255,255,255));
-    //down
-    this->hal->gfx()->drawTriangle(180,190, 190,200, 200,190,rgb888(255,255,255));
-    this->hal->gfx()->drawTriangle(40,190, 50,200, 50,180,rgb888(255,255,255));
-    this->hal->gfx()->drawTriangle(65,190, 55,200, 55,180,rgb888(255,255,255));
-    //separator
-    this->hal->gfx()->drawVLine(75,60,110,rgb888(255,255,255));
-}
-
-void OswAppWeather::printLastUpdate(){
-    this->hal->gfx()->setFont(nullptr);  
-    this->hal->gfx()->setTextCursor(120 , 225);
-    this->hal->gfx()->print(init_time_dd_mm_yyyy);
-}
-
-void OswAppWeather::printDate(){
-    //TODO: multiple days-> scrolling menu
-    this->hal->gfx()->setFont(&DS_DIGI12pt7b);    
-    this->hal->gfx()->setTextCursor(40 , 91);
-    this->hal->gfx()->print(init_time_mm_dd);
-    this->hal->gfx()->setTextCursor(40 , 120);
-    time_t time = this->init_timestamp;
-    time = time + (86400);
-    strftime(this->date_mm_dd[1], sizeof(this->date_mm_dd[1]),"%d/%m",localtime(&time));
-    this->hal->gfx()->print(date_mm_dd[1]);
-    time = time + (86400);
-    this->hal->gfx()->setTextCursor(40 , 149);
-    strftime(this->date_mm_dd[2], sizeof(this->date_mm_dd[2]),"%d/%m",localtime(&time));
-    this->hal->gfx()->print(date_mm_dd[2]);
-}
-
-bool OswAppWeather::loadData(){ 
-    Serial.println("Print weather content: ");
-    Serial.println(OswConfigAllKeys::weather.get());
-    Serial.println("End of weather content");
-    WeatherDecoder decoder(std::string(OswConfigAllKeys::weather.get().c_str()));
-    headerData_t header = decoder.getHeader();
-    this->forecast3days[0].weather = header.weather_init;
-    this->forecast3days[0].temperature = header.temp_init -64;
-    this->forecast3days[0].humidity = header.humidity_init*3.125;
-    this->forecast3days[0].pressure = header.pressure_init + 850;
-    this->init_timestamp = header.timestamp*4;//TODO: round 
-    if(strftime(this->init_time_dd_mm_yyyy, sizeof(this->init_time_dd_mm_yyyy), "%d/%m/%Y", localtime(&this->init_timestamp))){
-        Serial.println(this->init_time_dd_mm_yyyy);
-    }
-    if(strftime(this->init_time_mm_dd, sizeof(this->init_time_mm_dd), "%d/%m", localtime(&this->init_timestamp))){
-        Serial.println(this->init_time_mm_dd);
-    }
-    weatherUpdate_t update = decoder.getNext();
-    //TODO: generalize, not only 3 days with an update each 3h, but also different period between updates
-    for(int i=1; i<24; i++){
-        this->forecast3days[i].weather = update.weather;
-        this->forecast3days[i].temperature = forecast3days[i-1].temperature +((update.temp + (0.25*update.temp_mantissa)) * (-1*!update.temp_sgn));
-        this->forecast3days[i].humidity = update.humidity; 
-        this->forecast3days[i].pressure = forecast3days[i-1].pressure + (update.pressure * (-1*!update.pressure_sgn));
-        if(update.last_update){
-            i=24;//TODO: handle this condition in a better way
-        } else{
-            update = decoder.getNext();
-        }
-    }
-return true;
-}
-
-
 void OswAppWeather::drawWeatherIcon(){
     switch (this->forecast3days[this->updt_selector].weather)
-    {//TODO: all the cases
+    {
     case 0:
         this->drawSun(120,45);//TODO: draw sun/moon 
         break;
@@ -271,6 +198,28 @@ void OswAppWeather::drawWeather(){
     this->hal->gfx()->setTextCursor(200 , 119);
     strftime(this->time_updt,sizeof(this->time_updt),"%H:%M",localtime(&updt_time));
     this->hal->gfx()->print(this->time_updt);
+    if(this->main_selector==1){
+        this->hal->gfx()->drawHLine(170,132,58,rgb888(255,255,255));
+    }
+    //time struct to get the day associated to the incremented timestamp updt_time
+    tm* tm_1;
+    tm*tm_2;
+    tm_1 = localtime(&updt_time);
+    time_t time = this->init_timestamp;
+    if(tm_1->tm_yday==this->tm_init->tm_yday){
+        this->hal->gfx()->fillCircle(4,90,3,rgb888(255,255 , 255));
+    }
+    time = time + 86400;
+    tm_2 = localtime(&time);
+    if(tm_1->tm_yday==tm_2->tm_mday){
+        this->hal->gfx()->fillCircle(4,120,3,rgb888(255,255 , 255));
+    }
+    time = time + 86400;
+    tm_2 = localtime(&time);
+    if(tm_1->tm_yday==tm_2->tm_mday){
+        this->hal->gfx()->fillCircle(4,148,3,rgb888(255,255 , 255));
+    }
+
     //weather data 
     sprintf(this->buffer,"t:%3.2f",this->forecast3days[this->updt_selector].temperature);
     this->hal->gfx()->setTextCursor(120 , 90);
@@ -286,6 +235,83 @@ void OswAppWeather::drawWeather(){
 }
 
 
+void OswAppWeather::drawLayout(){
+    this->hal->gfx()->setFont(nullptr);
+    this->hal->gfx()->setTextCursor(120 , 215);
+    this->hal->gfx()->setTextMiddleAligned();
+    this->hal->gfx()->setTextCenterAligned();
+    this->hal->gfx()->print("last sync:");
+    //arrows
+    //up
+    this->hal->gfx()->drawTriangle(180,50, 190,40, 200,50,rgb888(255,255,255));
+    //down
+    this->hal->gfx()->drawTriangle(180,190, 190,200, 200,190,rgb888(255,255,255));
+    this->hal->gfx()->drawTriangle(40,190, 50,200, 50,180,rgb888(255,255,255));
+    this->hal->gfx()->drawTriangle(65,190, 55,200, 55,180,rgb888(255,255,255));
+    //separator
+    this->hal->gfx()->drawVLine(75,60,110,rgb888(255,255,255));
+}
+
+void OswAppWeather::printLastUpdate(){
+    this->hal->gfx()->setFont(nullptr);  
+    this->hal->gfx()->setTextCursor(120 , 225);
+    this->hal->gfx()->print(init_time_dd_mm_yyyy);
+}
+  
+void OswAppWeather::printDate(){
+    //TODO: multiple days-> scrolling menu
+
+    this->hal->gfx()->setFont(&DS_DIGI12pt7b);    
+    this->hal->gfx()->setTextCursor(40 , 91);
+    if(this->main_selector==0){//TODO: demo only, it's wrong
+        this->hal->gfx()->drawHLine(10,110,58,rgb888(255,255,255));
+    }
+    this->hal->gfx()->print(init_time_mm_dd);
+    this->hal->gfx()->setTextCursor(40 , 120);
+    time_t time = this->init_timestamp;
+    time = time + (86400);//TODO: it's wrong !
+    strftime(this->date_mm_dd[1], sizeof(this->date_mm_dd[1]),"%d/%m",localtime(&time));
+    this->hal->gfx()->print(date_mm_dd[1]);
+    time = time + (86400);
+    this->hal->gfx()->setTextCursor(40 , 149);
+    strftime(this->date_mm_dd[2], sizeof(this->date_mm_dd[2]),"%d/%m",localtime(&time));
+    this->hal->gfx()->print(date_mm_dd[2]);
+}
+
+bool OswAppWeather::loadData(){ 
+    Serial.println("Print weather content: ");
+    Serial.println(OswConfigAllKeys::weather.get());
+    Serial.println("End of weather content");
+    WeatherDecoder decoder(std::string(OswConfigAllKeys::weather.get().c_str()));
+    headerData_t header = decoder.getHeader();
+    this->forecast3days[0].weather = header.weather_init;
+    this->forecast3days[0].temperature = header.temp_init -64;
+    this->forecast3days[0].humidity = header.humidity_init*3.125;
+    this->forecast3days[0].pressure = header.pressure_init + 850;
+    this->init_timestamp = header.timestamp*4;//TODO: round 
+    if(strftime(this->init_time_dd_mm_yyyy, sizeof(this->init_time_dd_mm_yyyy), "%d/%m/%Y", localtime(&this->init_timestamp))){
+        Serial.println(this->init_time_dd_mm_yyyy);
+    }
+    if(strftime(this->init_time_mm_dd, sizeof(this->init_time_mm_dd), "%d/%m", localtime(&this->init_timestamp))){
+        Serial.println(this->init_time_mm_dd);
+    }
+    tm_init = localtime(&this->init_timestamp);
+    weatherUpdate_t update = decoder.getNext();
+    //TODO: generalize, not only 3 days with an update each 3h, but also different period between updates
+    for(int i=1; i<24; i++){
+        this->forecast3days[i].weather = update.weather;
+        this->forecast3days[i].temperature = forecast3days[i-1].temperature +((update.temp + (0.25*update.temp_mantissa)) * (-1*!update.temp_sgn));
+        this->forecast3days[i].humidity = update.humidity; 
+        this->forecast3days[i].pressure = forecast3days[i-1].pressure + (update.pressure * (-1*!update.pressure_sgn));
+        if(update.last_update){
+            i=24;//TODO: handle this condition in a better way
+        } else{
+            update = decoder.getNext();
+        }
+    }
+return true;
+}
+
 
 void OswAppWeather::setup() {
     this->loadData();
@@ -300,7 +326,14 @@ void OswAppWeather::loop() {
     if (hal->btnHasGoneDown(BUTTON_3)) {
         if(this->updt_selector>0){
             this->updt_selector--;
-         }
+        }
+    }
+    if( hal->btnHasGoneDown(BUTTON_1)){
+        if(this->main_selector==1){
+            this->main_selector = 0;
+        }else{
+            this->main_selector = 1;
+        }
     }
     this->drawLayout();
     this->drawWeather();   
