@@ -190,7 +190,7 @@ void OswAppWeather::drawWeatherIcon(){
 void OswAppWeather::drawWeather(){
     updt_time = init_timestamp + (this->updt_selector * 10800 );
     this->drawWeatherIcon();
-    //draw time of current weather update
+    //draw time of current weather updatea
     this->hal->gfx()->setFont(&DS_DIGI12pt7b);
     this->hal->gfx()->setTextSize(1);
     this->hal->gfx()->setTextMiddleAligned();
@@ -203,22 +203,31 @@ void OswAppWeather::drawWeather(){
     }
     //time struct to get the day associated to the incremented timestamp updt_time
     tm* tm_1;
-    tm*tm_2;
+
+    tm* tm_2;
     tm_1 = localtime(&updt_time);
     time_t time = this->init_timestamp;
-    if(tm_1->tm_yday==this->tm_init->tm_yday){
-        this->hal->gfx()->fillCircle(4,90,3,rgb888(255,255 , 255));
-    }
     time = time + 86400;
     tm_2 = localtime(&time);
-    if(tm_1->tm_yday==tm_2->tm_mday){
-        this->hal->gfx()->fillCircle(4,120,3,rgb888(255,255 , 255));
-    }
+
+
+    // if(tm_1->tm_yday==this->tm_init->tm_yday){
+    //     this->hal->gfx()->fillCircle(4,90,3,rgb888(255,255 , 255));
+    // }
+
+    // if(tm_1->tm_yday==tm_2->tm_mday){
+    //     this->hal->gfx()->fillCircle(4,120,3,rgb888(255,255 , 255));
+    // }
     time = time + 86400;
     tm_2 = localtime(&time);
-    if(tm_1->tm_yday==tm_2->tm_mday){
-        this->hal->gfx()->fillCircle(4,148,3,rgb888(255,255 , 255));
-    }
+    // if(tm_1->tm_yday==tm_2->tm_mday){
+    //   //  Serial.println(tm_2->tm_mday);
+    //     this->hal->gfx()->fillCircle(4,148,3,rgb888(255,255 , 255));
+    // }else{
+    //     if(tm_1->tm_mday!=tm_2->tm_mday){
+    //       //  Serial.println(tm_2->tm_mday);
+    //     }
+    // }
 
     //weather data 
     sprintf(this->buffer,"t:%3.2f",this->forecast3days[this->updt_selector].temperature);
@@ -258,24 +267,91 @@ void OswAppWeather::printLastUpdate(){
     this->hal->gfx()->print(init_time_dd_mm_yyyy);
 }
   
-void OswAppWeather::printDate(){
-    //TODO: multiple days-> scrolling menu
-
-    this->hal->gfx()->setFont(&DS_DIGI12pt7b);    
-    this->hal->gfx()->setTextCursor(40 , 91);
-    if(this->main_selector==0){//TODO: demo only, it's wrong
-        this->hal->gfx()->drawHLine(10,110,58,rgb888(255,255,255));
+void OswAppWeather::getDayList(int n_updates){
+    time_t timestamp = this->init_timestamp;
+    tm* time_current;
+    int mday_prev;
+    char date_buff[6];
+    time_current = localtime(&this->init_timestamp);
+    mday_prev = time_current->tm_mday;
+    strftime(date_buff, sizeof(date_buff), "%d/%m", localtime(&this->init_timestamp));
+    this->day_first_updt.push_back(0);
+    for(int i=1; i<24; i++){
+        timestamp = timestamp + 10800;//TODO: generalize, not only 3h between updates
+        mday_prev = time_current->tm_mday;
+        time_current = localtime(&timestamp);
+        Serial.println(time_current->tm_mday);
+        if (time_current->tm_mday != mday_prev){
+            strftime(date_buff, sizeof(date_buff), "%d/%m", localtime(&timestamp));
+            day_first_updt.push_back(i);
+            Serial.printf("%s\n",date_buff);
+        }
     }
-    this->hal->gfx()->print(init_time_mm_dd);
-    this->hal->gfx()->setTextCursor(40 , 120);
-    time_t time = this->init_timestamp;
-    time = time + (86400);//TODO: it's wrong !
-    strftime(this->date_mm_dd[1], sizeof(this->date_mm_dd[1]),"%d/%m",localtime(&time));
-    this->hal->gfx()->print(date_mm_dd[1]);
-    time = time + (86400);
-    this->hal->gfx()->setTextCursor(40 , 149);
-    strftime(this->date_mm_dd[2], sizeof(this->date_mm_dd[2]),"%d/%m",localtime(&time));
-    this->hal->gfx()->print(date_mm_dd[2]);
+}
+
+
+void OswAppWeather::printDate(){
+    // //TODO: multiple days-> scrolling menu  
+    time_t time;
+    char date_buf[6];
+    this->hal->gfx()->fillCircle(4,120,3,rgb888(255,255 , 255));
+    if(this->day_first_updt.size()!=0){
+        if(this->updt_selector < this->day_first_updt[1]){
+            this->hal->gfx()->setFont(nullptr);
+            this->hal->gfx()->setTextCursor(40 , 91);
+            this->hal->gfx()->print("---");
+        }else{
+            this->hal->gfx()->setFont(&DS_DIGI12pt7b); 
+            this->hal->gfx()->setTextCursor(40 , 91);
+            time = this->updt_time - 86400;
+            strftime(date_buf, sizeof(date_buf), "%d/%m", localtime(&time));
+            this->hal->gfx()->print(date_buf);
+        }
+        
+        if(this->updt_selector >= this->day_first_updt[this->day_first_updt.size()-1]){
+            this->hal->gfx()->setFont(nullptr);
+            this->hal->gfx()->setTextCursor(40 , 149);
+            this->hal->gfx()->print("---");
+        }else{
+            this->hal->gfx()->setFont(&DS_DIGI12pt7b); 
+            time = this->updt_time + 86400;
+            this->hal->gfx()->setTextCursor(40 , 149);
+            strftime(date_buf, sizeof(date_buf), "%d/%m", localtime(&time));
+            this->hal->gfx()->print(date_buf);
+        }
+        if(this->day_first_updt.size()!=0){
+            this->hal->gfx()->setFont(&DS_DIGI12pt7b); 
+            this->hal->gfx()->setTextCursor(40 , 120);
+            time = this->updt_time;
+            strftime(date_buf, sizeof(date_buf), "%d/%m", localtime(&time));
+            this->hal->gfx()->print(date_buf);
+        }
+    }else{
+        this->hal->gfx()->setFont(nullptr); 
+        this->hal->gfx()->setTextCursor(40 , 120);
+        this->hal->gfx()->print("no data");
+    }
+    
+    this->hal->gfx()->setFont(&DS_DIGI12pt7b);  
+
+
+    // this->hal->gfx()->setTextCursor(40 , 91);
+    if(this->main_selector==0){//TODO: demo only, it's wrong
+        this->hal->gfx()->drawHLine(170,132,58,rgb888(255,255,255));
+    }
+    // this->hal->gfx()->print(init_time_mm_dd);
+    // this->hal->gfx()->setTextCursor(40 , 120);
+    // time_t time = this->init_timestamp;
+    // time = time + (86400);//TODO: it's wrong !
+    // strftime(this->date_mm_dd[1], sizeof(this->date_mm_dd[1]),"%d/%m",localtime(&time));
+    // this->hal->gfx()->print(date_mm_dd[1]);
+    // time = time + (86400);
+    // this->hal->gfx()->setTextCursor(40 , 149);
+    // strftime(this->date_mm_dd[2], sizeof(this->date_mm_dd[2]),"%d/%m",localtime(&time));
+    // this->hal->gfx()->print(date_mm_dd[2]);
+
+
+
 }
 
 bool OswAppWeather::loadData(){ 
@@ -285,10 +361,14 @@ bool OswAppWeather::loadData(){
     WeatherDecoder decoder(std::string(OswConfigAllKeys::weather.get().c_str()));
     headerData_t header = decoder.getHeader();
     this->forecast3days[0].weather = header.weather_init;
-    this->forecast3days[0].temperature = header.temp_init -64;
-    this->forecast3days[0].humidity = header.humidity_init*3.125;
+    this->forecast3days[0].temperature = header.temp_init - 64;
+    this->forecast3days[0].humidity = header.humidity_init * 3.125;
     this->forecast3days[0].pressure = header.pressure_init + 850;
-    this->init_timestamp = header.timestamp*4;//TODO: round 
+    this->init_timestamp = header.timestamp * 4;
+    tm* tmx;
+    this->getDayList();
+    tmx = localtime(&this->init_timestamp);
+    Serial.printf("day :%d\n",tmx->tm_mday);
     if(strftime(this->init_time_dd_mm_yyyy, sizeof(this->init_time_dd_mm_yyyy), "%d/%m/%Y", localtime(&this->init_timestamp))){
         Serial.println(this->init_time_dd_mm_yyyy);
     }
@@ -297,7 +377,7 @@ bool OswAppWeather::loadData(){
     }
     tm_init = localtime(&this->init_timestamp);
     weatherUpdate_t update = decoder.getNext();
-    //TODO: generalize, not only 3 days with an update each 3h, but also different period between updates
+    //TODO: generalize, not only 24 updates with an update each 3h, but also different period between updates
     for(int i=1; i<24; i++){
         this->forecast3days[i].weather = update.weather;
         this->forecast3days[i].temperature = forecast3days[i-1].temperature +((update.temp + (0.25*update.temp_mantissa)) * (-1*!update.temp_sgn));
@@ -312,21 +392,63 @@ bool OswAppWeather::loadData(){
 return true;
 }
 
+int OswAppWeather::getNextDay(){
+    for(int i=0; i<this->day_first_updt.size()-1;i++){
+        if(this->day_first_updt[i] > this->updt_selector){
+            return this->day_first_updt[i];
+        }
+    }
+    return 0;
+}
+
+int OswAppWeather::getPrevDay(){
+    for(int i=this->day_first_updt.size()-1; i>=0; i--){
+        if(this->day_first_updt[i] < this->updt_selector){
+            return this->day_first_updt[i];
+        }
+    }
+    return 0;
+}
+
 
 void OswAppWeather::setup() {
     this->loadData();
 }
 
 void OswAppWeather::loop() {
+
+    this->drawLayout();
+    this->drawWeather();   
+    this->printDate();
+    this->printLastUpdate();
+    this->hal->requestFlush(); 
+
     if (hal->btnHasGoneDown(BUTTON_2)) {
-        if(this->updt_selector<23){
-            this->updt_selector++;
-        }
+            if(this->main_selector==1){// next update
+                if(this->updt_selector<23) {this->updt_selector++;}
+            }
+            if(this->main_selector==0){//next day
+                if(this->updt_selector >= this->day_first_updt[this->day_first_updt.size()-1]){
+                    this->updt_selector=this->updt_selector;
+                }else{
+                    this->updt_selector = this->getNextDay();
+                }
+            }
+
     }
     if (hal->btnHasGoneDown(BUTTON_3)) {
-        if(this->updt_selector>0){
-            this->updt_selector--;
+       
+        if(this->main_selector==1){
+            if(this->updt_selector>0){this->updt_selector--; }              
         }
+        if(this->main_selector==0){
+            if(this->updt_selector == 0){
+                this->updt_selector=this->updt_selector;
+            }else{
+                this->updt_selector = this->getPrevDay();
+            }
+        }
+
     }
     if( hal->btnHasGoneDown(BUTTON_1)){
         if(this->main_selector==1){
@@ -335,11 +457,7 @@ void OswAppWeather::loop() {
             this->main_selector = 1;
         }
     }
-    this->drawLayout();
-    this->drawWeather();   
-    this->printDate();
-    this->printLastUpdate();
-    this->hal->requestFlush(); 
+
 }
 
 void OswAppWeather::stop() {

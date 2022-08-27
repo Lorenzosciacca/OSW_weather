@@ -2,7 +2,7 @@
 #define OSW_APP_WEATHER
 
 #include <osw_hal.h>
-
+#include <vector>
 #include "osw_app.h"
 class OswAppWeather : public OswApp {
   public:
@@ -27,6 +27,9 @@ class OswAppWeather : public OswApp {
     void drawThunderBolt(int x, int y);
     void printLastUpdate();
     void printDate();
+    void getDayList(int n_updates = 24);
+    int getNextDay();
+    int getPrevDay();
     void _drawDroplet(int x, int y, uint32_t color = rgb888(255, 255, 255));
     bool displayBufferDisabled = false;
     bool get_finish = false ;
@@ -50,6 +53,8 @@ class OswAppWeather : public OswApp {
     char time_updt[6];
     char buffer[40];
     time_t updt_time;
+    tm* tm_init;
+    std::vector<int> day_first_updt{};// n-th entry is the index of first update of the n-th day 
 };
 
 #endif
