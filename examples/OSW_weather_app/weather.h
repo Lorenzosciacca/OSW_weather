@@ -25,6 +25,7 @@ class OswAppWeather : public OswApp {
     void drawMoon(int x, int y, int radius = 15);
     void drawFog(int x, int y, int mist_fog);
     void drawThunderBolt(int x, int y);
+    void drawTriangleThick(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t radius,uint16_t color);
     void printLastUpdate();
     void printDate();
     void getDayList(int n_updates = 24);

@@ -9,17 +9,16 @@
 #include "./apps/examples/OpenWeatherParser.h"
 #include "./fonts/DS_DIGI12pt7b.h"
 
+#define OPENWEATHERMAP_APIKEY "5643586bde5db6443716d934ced6c66a"
+#define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/forecast?"
+#define OPENWEATHERMAP_CITY "alessandria"
+#define OPENWEATHERMAP_COUNTRY "IT"
 /*
-    TODO:   generalize decoding using coding options
-            generalize decoding for multiple days
-            select day 
-            change location 
+    TODO:   multiple city support
             Weather icons class
+            enhance decoder ( sync frame )
             
 */
-bool red = false;
-
-// gfx
 
 
 void OswAppWeather::drawSun(int x, int y, int radius ){
@@ -199,7 +198,8 @@ void OswAppWeather::drawWeather(){
     strftime(this->time_updt,sizeof(this->time_updt),"%H:%M",localtime(&updt_time));
     this->hal->gfx()->print(this->time_updt);
     if(this->main_selector==1){
-        this->hal->gfx()->drawHLine(170,132,58,rgb888(255,255,255));
+        //this->hal->gfx()->drawHLine(170,132,58,rgb888(255,255,255));
+        this->hal->gfx()->drawThickLine(170,132,228,132,2,rgb565(164, 35, 52));
     }
     //time struct to get the day associated to the incremented timestamp updt_time
     tm* tm_1;
@@ -243,6 +243,13 @@ void OswAppWeather::drawWeather(){
     this->hal->gfx()->print(buffer);
 }
 
+void OswAppWeather::drawRefreshIcon(uint16_t color){
+    this->hal->gfx()->fillCircle(185,152,12, color);
+    this->hal->gfx()->fillCircle(185,152,8,rgb565(0,0,0));
+    this->hal->gfx()->drawThickLine(185,157,200,157,2,rgb565(0,0,0));
+    this->drawTriangleThick(194,154, 199,154, 199,149,2, color);
+}
+
 
 void OswAppWeather::drawLayout(){
     this->hal->gfx()->setFont(nullptr);
@@ -250,22 +257,80 @@ void OswAppWeather::drawLayout(){
     this->hal->gfx()->setTextMiddleAligned();
     this->hal->gfx()->setTextCenterAligned();
     this->hal->gfx()->print("last sync:");
-    //arrows
-    //up
-    this->hal->gfx()->drawTriangle(180,50, 190,40, 200,50,rgb888(255,255,255));
-    //down
-    this->hal->gfx()->drawTriangle(180,190, 190,200, 200,190,rgb888(255,255,255));
-    this->hal->gfx()->drawTriangle(40,190, 50,200, 50,180,rgb888(255,255,255));
-    this->hal->gfx()->drawTriangle(65,190, 55,200, 55,180,rgb888(255,255,255));
+    if(this->main_selector!=2){
+         //up
+        this->drawTriangleThick(180,50, 190,40, 200,50,4,rgb888(255,255,255));
+        //down
+        this->drawTriangleThick(180,190, 190,200, 200,190,4,rgb888(255,255,255));
+    }
+    //<-
+    this->drawTriangleThick(37,190, 45,198, 45,182,4,rgb565(100,100,100));
+    //->
+    this->drawTriangleThick(68,190, 60,198, 60,182,4,rgb888(255,255,255));
     //separator
-    this->hal->gfx()->drawVLine(75,60,110,rgb888(255,255,255));
+    this->hal->gfx()->drawThickLine(78, 60,78,168,2,rgb565(164, 35, 52));
+    if(this->main_selector!=2){
+        this->drawRefreshIcon(rgb565(255,255,255));
+    }else{
+        this->drawRefreshIcon(rgb565(164, 35, 52));
+
+    }
 }
+
+void OswAppWeather::drawTriangleThick(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t radius,uint16_t color){
+    this->hal->gfx()->drawThickLine(x0, y0, x1, y1, radius, color);
+    this->hal->gfx()->drawThickLine(x1, y1, x2, y2, radius, color);
+    this->hal->gfx()->drawThickLine(x2, y2, x0, y0, radius, color);
+}
+
 
 void OswAppWeather::printLastUpdate(){
     this->hal->gfx()->setFont(nullptr);  
     this->hal->gfx()->setTextCursor(120 , 225);
     this->hal->gfx()->print(init_time_dd_mm_yyyy);
 }
+
+void OswAppWeather::weatherRequest(){
+    WiFiClientSecure *client = new WiFiClientSecure ;
+    client->setCertificate(this->rootCACertificate);
+    HTTPClient http;
+    http.begin("https://api.openweathermap.org/data/2.5/forecast?lat=44.91837743102328&lon=8.596110056689&appid=5643586bde5db6443716d934ced6c66a&cnt=24");
+    int code = http.GET();
+    int size = http.getSize();
+    float temp;
+    http.end();
+    delete client;
+    OswServiceAllTasks::wifi.disconnectWiFi();
+    if (code > 0){
+        DynamicJsonDocument doc(16432);
+        deserializeJson(doc,http.getStream());
+        temp = doc["list"][0]["main"]["temp"];
+        codingOpt_t options;
+        options.delta=3;
+        options.encode_humidity = true;
+        options.encode_pressure = true;
+        options.encode_temp = true;
+        options.encode_weather = true;
+        options.encode_pressure_long = true;
+        options.encode_temp_long = true;
+        OpenWeatherParser pars(options);
+        string encoded = pars.encodeWeather(doc);
+        OswConfig::getInstance()->enableWrite();
+        OswConfigAllKeys::weather.set(encoded.c_str());
+        OswConfig::getInstance()->disableWrite();
+        // wEncoder.setUpdate(updt_);
+        // Serial.println("Updated");
+        // string encoded = wEncoder.getEncoded();
+        // Serial.println("get encoded");
+        // OswConfigAllKeys::weather.set(encoded.c_str());
+        // Serial.println("Weather updated");
+
+        
+    }
+}
+
+
+
   
 void OswAppWeather::getDayList(int n_updates){
     time_t timestamp = this->init_timestamp;
@@ -336,9 +401,11 @@ void OswAppWeather::printDate(){
 
 
     // this->hal->gfx()->setTextCursor(40 , 91);
-    if(this->main_selector==0){//TODO: demo only, it's wrong
-        this->hal->gfx()->drawHLine(170,132,58,rgb888(255,255,255));
+    if(this->main_selector==0){
+        //this->hal->gfx()->drawHLine(10,132,58,rgb888(255,255,255));
+        this->hal->gfx()->drawThickLine(10,132,68,132,2,rgb565(164, 35, 52));
     }
+    
     // this->hal->gfx()->print(init_time_mm_dd);
     // this->hal->gfx()->setTextCursor(40 , 120);
     // time_t time = this->init_timestamp;
@@ -451,10 +518,10 @@ void OswAppWeather::loop() {
 
     }
     if( hal->btnHasGoneDown(BUTTON_1)){
-        if(this->main_selector==1){
-            this->main_selector = 0;
+        if(this->main_selector!=2){
+            this->main_selector++;
         }else{
-            this->main_selector = 1;
+            this->main_selector=0;
         }
     }
 
