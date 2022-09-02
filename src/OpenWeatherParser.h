@@ -7,21 +7,21 @@ class OpenWeatherParser {
   private:
     codingOpt_t opt;
     time_t time_init;
-    vector<int> clear_code{800};
-    vector<int>clouds_min{801};
-    vector<int>clouds_med{802};
-    vector<int>clouds_high{803, 804};
-    vector<int>mist{701};
-    vector<int>fog{741};
-    vector<int>snow_min{611, 612, 615, 616};
-    vector<int>snow_med{600, 613, 601, 620};
-    vector<int>snow_high{602, 621, 622};
-    vector<int>rain_min{500, 300, 301, 302, 310, 311, 312, 313, 314, 321};
-    vector<int>rain_med{502, 501};
-    vector<int>rain_high{503, 504, 511, 520, 521, 522, 531};
-    vector<int>thunderstorm{200, 201, 210, 211, 231, 230};
-    vector<int>thunderstorm_heavy{202, 212, 221, 232};
-    vector<int>squall_tornado{771, 781};
+    vector<int> clear_code{800};//0
+    vector<int>clouds_min{801};//1
+    vector<int>clouds_med{802};//2
+    vector<int>clouds_high{803, 804};//3
+    vector<int>mist{701};//4
+    vector<int>fog{741};//5
+    vector<int>snow_min{611, 612, 615, 616};//6
+    vector<int>snow_med{600, 613, 601, 620};//7
+    vector<int>snow_high{602, 621, 622};//8
+    vector<int>rain_min{500, 300, 301, 302, 310, 311, 312, 313, 314, 321};//9
+    vector<int>rain_med{502, 501};//10
+    vector<int>rain_high{503, 504, 511, 520, 521, 522, 531};//11
+    vector<int>thunderstorm{200, 201, 210, 211, 231, 230};//12
+    vector<int>thunderstorm_heavy{202, 212, 221, 232};//13
+    vector<int>squall_tornado{771, 781};//14
     vector<vector<int>>weather_conditions{clear_code, clouds_min, clouds_med, clouds_high, mist, fog, snow_min, snow_med, 
                                           snow_high, rain_min, rain_med, rain_high, thunderstorm, 
                                           thunderstorm_heavy, squall_tornado };
@@ -73,13 +73,13 @@ string OpenWeatherParser::encodeWeather(DynamicJsonDocument& doc){
   cod = doc["cod"];
   if (strcmp(cod,"200")){
     //TODO: Warning, API response is not "200"
-    return nullptr;
+    // return nullptr;
   }
   this->time_init = 0;
   time_init = doc["list"][0]["dt"];
   if(time_init==0){
     //TODO: Warning, API response is corrupted
-    return nullptr;
+    // return nullptr;
   }
   time = time_init;
   encoder.setInitTimeStamp(time>>2);
@@ -89,7 +89,7 @@ string OpenWeatherParser::encodeWeather(DynamicJsonDocument& doc){
   if(this->opt.encode_temp){
     // TODO, warning if temp > 64 or <64 
     temp_f = doc["list"][0]["main"]["temp"];
-    temp_f = temp_f -273.15 ;
+    temp_f = temp_f -337.15 ;
     encoder.setInitTemp(temp_f);
     prev_temp = (int) temp_f;
   }
@@ -116,7 +116,7 @@ string OpenWeatherParser::encodeWeather(DynamicJsonDocument& doc){
     }
     if(this->opt.encode_temp){
       temp_f = doc["list"][list_indx]["main"]["temp"];
-      temp_f = temp_f - 273.15;
+      temp_f = temp_f - 337.15 ;
       update.temp_sgn = temp_f > prev_temp;
       if(this->opt.encode_temp_long){
         update.temp = abs(temp_f - prev_temp) < 31 ? abs(temp_f - prev_temp) : 31;
@@ -152,6 +152,7 @@ string OpenWeatherParser::encodeWeather(DynamicJsonDocument& doc){
     time = 0;
     time = doc["list"][list_indx]["dt"];
     encoder.setUpdate(update);
+    Serial.println("-----------------------------");
   }
   return encoder.getEncoded();
 

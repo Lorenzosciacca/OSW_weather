@@ -262,6 +262,10 @@ void OswAppWeather::drawLayout(){
         this->drawTriangleThick(180,50, 190,40, 200,50,4,rgb888(255,255,255));
         //down
         this->drawTriangleThick(180,190, 190,200, 200,190,4,rgb888(255,255,255));
+    }else{
+        this->hal->gfx()->setFont(nullptr);
+        this->hal->gfx()->setTextCursor(180,50);
+        this->hal->gfx()->print("sync");
     }
     //<-
     this->drawTriangleThick(37,190, 45,198, 45,182,4,rgb565(100,100,100));
@@ -425,7 +429,13 @@ bool OswAppWeather::loadData(){
     Serial.println("Print weather content: ");
     Serial.println(OswConfigAllKeys::weather.get());
     Serial.println("End of weather content");
-    WeatherDecoder decoder(std::string(OswConfigAllKeys::weather.get().c_str()));
+    char* in_data;
+    String wstr = OswConfigAllKeys::weather.get();
+    Serial.println("size of wstr: ");
+    Serial.println(wstr.length());
+    Serial.println("....");
+    
+    WeatherDecoder decoder(OswConfigAllKeys::weather.get());
     headerData_t header = decoder.getHeader();
     this->forecast3days[0].weather = header.weather_init;
     this->forecast3days[0].temperature = header.temp_init - 64;
@@ -447,13 +457,16 @@ bool OswAppWeather::loadData(){
     //TODO: generalize, not only 24 updates with an update each 3h, but also different period between updates
     for(int i=1; i<24; i++){
         this->forecast3days[i].weather = update.weather;
-        this->forecast3days[i].temperature = forecast3days[i-1].temperature +((update.temp + (0.25*update.temp_mantissa)) * (-1*!update.temp_sgn));
-        this->forecast3days[i].humidity = update.humidity; 
-        this->forecast3days[i].pressure = forecast3days[i-1].pressure + (update.pressure * (-1*!update.pressure_sgn));
+        this->forecast3days[i].temperature = forecast3days[i-1].temperature + (update.temp_sgn?   (update.temp + (0.25*update.temp_mantissa)) : -(update.temp + (0.25*update.temp_mantissa))   );
+        this->forecast3days[i].humidity = update.humidity*3.125;
+        this->forecast3days[i].pressure = forecast3days[i-1].pressure + ( update.pressure_sgn? update.pressure: -update.pressure);
         if(update.last_update){
-            i=24;//TODO: handle this condition in a better way
+           // i=24;//TODO: handle this condition in a better way
+             Serial.println("i=");
+            Serial.println(i);
         } else{
             update = decoder.getNext();
+            
         }
     }
 return true;
@@ -515,6 +528,9 @@ void OswAppWeather::loop() {
                 this->updt_selector = this->getPrevDay();
             }
         }
+        if(this->main_selector==2){
+            this->weatherRequest();
+        }
 
     }
     if( hal->btnHasGoneDown(BUTTON_1)){
@@ -530,3 +546,4 @@ void OswAppWeather::loop() {
 void OswAppWeather::stop() {
 
 }
+

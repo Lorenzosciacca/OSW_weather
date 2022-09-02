@@ -29,7 +29,7 @@ typedef struct {
   int temp_mantissa;
   int humidity; 
   int pressure; bool pressure_sgn;
-  bool last_update;// used only by the decoder
+  bool last_update = false;// used only by the decoder
 }weatherUpdate_t;
 
 typedef struct
@@ -63,7 +63,7 @@ class WeatherEncoder{
   private:
   headerData_t last_header;
   int last_header_indx; //  index in outData where to put header
-  vector<uint8_t> outData{};
+  vector<unsigned char> outData{};
   vector<uint8_t>::iterator oPtr = outData.begin();
   char buffer8bit[8];
   int buffer_indx = 0;
@@ -139,14 +139,14 @@ void WeatherEncoder::setInitPressure(int pressure){
 
 unsigned int WeatherEncoder::_byteToUint(char* bits){
   unsigned int res = 0;
-  int j = 0;
+
   bitset<8> b = bitset<8>(string(bits));
   res = b.to_ulong();
   return res;
 }
 unsigned int WeatherEncoder::_byteToUint(string bits){
   unsigned int res = 0;
-  int j = 0;
+
   bitset<8> b = bitset<8>(string(bits));
   res = b.to_ulong();
   return res;
@@ -154,14 +154,17 @@ unsigned int WeatherEncoder::_byteToUint(string bits){
 
 
 void WeatherEncoder::_putInBuffer(string in_data){
-  unsigned int c;
+  uint8_t c;
   for( int i = 0; i < in_data.length(); i++){
     this->buffer8bit[buffer_indx] = in_data[i];
     /* empty the buffer */ 
     if ( buffer_indx == 7){
+      Serial.println("buffer:");
+      Serial.println(buffer8bit);
       c = this->_byteToUint(buffer8bit);
       char_cnt++;
       this->outData.push_back(c);
+      Serial.println("push");
       buffer_indx = 0;      
     }else{ 
       buffer_indx++;
@@ -213,6 +216,8 @@ void WeatherEncoder::_writeHeader(string header_bin){
 
 void WeatherEncoder::_emptyBuffer(){
   unsigned int c =0;
+  Serial.println("buff:");
+  Serial.println(buffer8bit);
   if(this->buffer_indx != 0){
     for (int i= buffer_indx; i <= 7; i++){
       buffer8bit[i] = '0';
@@ -225,9 +230,7 @@ void WeatherEncoder::_emptyBuffer(){
 }
 
 string WeatherEncoder::getEncoded()
-{
-  // write header
-  string header_bin;
+{ string header_bin;
   bitset<30> bTime = this->last_header.timestamp;
   bitset<5> bDelta = this->last_header.delta_time;
   bitset<7> bToNxtSync = 0; // NOTE: sync() not implemented
@@ -248,6 +251,8 @@ string WeatherEncoder::getEncoded()
     out_s.push_back(outData[i]);
   }
   return out_s;
+
+
 }
 
 void WeatherEncoder::setUpdate(weatherUpdate_t update){
@@ -276,6 +281,8 @@ void WeatherEncoder::setUpdate(weatherUpdate_t update){
   }
   if (this->last_header.encode_humidity){
       bitset<5> bH = update.humidity; // humidity
+      Serial.println(" update Humidity: ");
+      Serial.println(update.humidity);
       this->_putInBuffer(bH.to_string());
   }
   if (this->last_header.encode_pressure){
@@ -287,6 +294,8 @@ void WeatherEncoder::setUpdate(weatherUpdate_t update){
       if (this->last_header.encode_pressure_long){
         bitset<5> bP = update.pressure; // pressure
         this->_putInBuffer(bP.to_string());
+        Serial.println("pressure: ");
+        Serial.println(update.pressure);
       }else{
         bitset<3> bP = update.pressure; // pressure
         this->_putInBuffer(bP.to_string());
@@ -300,7 +309,7 @@ void WeatherEncoder::setUpdate(weatherUpdate_t update){
 class WeatherDecoder
 {
 public:
-  WeatherDecoder(string data);
+  WeatherDecoder(String data);
   // headerData_t last_header;
   headerData_t getHeader();// get header struct 
   weatherUpdate_t getNext();// get next update 
@@ -308,7 +317,7 @@ public:
 private:
   headerData_t _header;
   string _header_str;
-  string in_data;
+  String in_data;
   void _buildHeader();
   void _decodeHeader();
   string _readBuffer(int n_bits);
@@ -334,27 +343,38 @@ void WeatherDecoder::_getUpdateSize(){
 }
 
 
-WeatherDecoder::WeatherDecoder(string data){
+WeatherDecoder::WeatherDecoder(String data){
+  Serial.println("data size");
+  // Serial.println(data.size());
+  // Serial.println(data.c_str());
   uint8_t header_uint8[9];
-  if (data.size()*8<76){
+  if (data.length()*8<76){
     this->header_is_valid = false;
+    Serial.println("\"header is not valid\"");
   }
   else{
     header_is_valid = true;
     for(int i=0; i<9;i++){
       header_uint8[i] = uint8_t(data[i]);
     }
+    Serial.println("Decoding header: ");
     for(int i=0;i<9;i++){
       _header_str.append(bitset<8>(header_uint8[i]).to_string());
     }
+    Serial.println(_header_str.c_str());
     this->_decodeHeader();
     this->_getUpdateSize();
-    if(data.size() < 9 + ((update_size)) / 8){
+    if(data.length() < 9 + ((update_size)) / 8){
       this->data_is_valid = false;
+      Serial.println("data not valid");
     }
     this->in_data_indx = 9;
-    in_data = data;
-    remaining_updt= ((in_data.size()-9)*8)/update_size;
+    this->in_data = data;
+    Serial.println("update size:");
+    Serial.println(update_size);   
+    Serial.println("string size:");
+    Serial.println(in_data.length()); 
+    remaining_updt = ((in_data.length()-9)*8)/update_size;
   }
 }
 void WeatherDecoder::_decodeHeader(){
@@ -392,7 +412,7 @@ string WeatherDecoder::_readBuffer(int n_bits){
   string out_str = "";
   for ( int i=0; i<n_bits; i++){
     if(this->buffer_is_empty){
-      if(in_data_indx==in_data.size()){
+      if(in_data_indx==in_data.length()){
         return "";
       }
       this->_buffer = bitset<8>(in_data[this->in_data_indx]).to_string();
@@ -416,6 +436,8 @@ weatherUpdate_t WeatherDecoder::_readUpdate(){
   if(this->_header.encode_weather){
     bitset<4> bW = bitset<4>(this->_readBuffer(4));
     updt.weather = bW.to_ulong();
+    Serial.println("weather to str: ");
+    Serial.println(bW.to_string().c_str());
   }
   if(this->_header.encode_temp){
     updt.temp_sgn = this->_readBuffer(1)=="1" ? true : false;
@@ -450,8 +472,11 @@ weatherUpdate_t WeatherDecoder::_readUpdate(){
 weatherUpdate_t WeatherDecoder::getNext(){
   //
   if(data_is_valid && header_is_valid){
+    //Serial.println("data valid");
     weatherUpdate_t update;
     update = this->_readUpdate();
+    Serial.println("remaining updates:");
+    Serial.println(this->remaining_updt);
     this->remaining_updt--;
     if(remaining_updt == 0){
       update.last_update = true;
@@ -460,6 +485,7 @@ weatherUpdate_t WeatherDecoder::getNext(){
     }
     return update;
   }else {
+    Serial.println("data broken");
     weatherUpdate_t broken;
     broken.last_update = true;
     return broken;
