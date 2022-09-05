@@ -318,9 +318,9 @@ void OswAppWeather::weatherRequest(){
         options.encode_pressure_long = true;
         options.encode_temp_long = true;
         OpenWeatherParser pars(options);
-        string encoded = pars.encodeWeather(doc);
+        String encoded = pars.encodeWeather(doc);
         OswConfig::getInstance()->enableWrite();
-        OswConfigAllKeys::weather.set(encoded.c_str());
+        OswConfigAllKeys::weather.set(encoded);
         OswConfig::getInstance()->disableWrite();
         // wEncoder.setUpdate(updt_);
         // Serial.println("Updated");
@@ -429,7 +429,6 @@ bool OswAppWeather::loadData(){
     Serial.println("Print weather content: ");
     Serial.println(OswConfigAllKeys::weather.get());
     Serial.println("End of weather content");
-    char* in_data;
     String wstr = OswConfigAllKeys::weather.get();
     Serial.println("size of wstr: ");
     Serial.println(wstr.length());
@@ -492,7 +491,7 @@ int OswAppWeather::getPrevDay(){
 
 
 void OswAppWeather::setup() {
-    this->loadData();
+   this->loadData();
 }
 
 void OswAppWeather::loop() {
