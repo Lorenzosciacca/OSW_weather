@@ -10,13 +10,13 @@
 #include "./fonts/DS_DIGI12pt7b.h"
 
 #define OPENWEATHERMAP_APIKEY "5643586bde5db6443716d934ced6c66a"
-#define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/forecast?"
 #define OPENWEATHERMAP_CITY "alessandria"
-#define OPENWEATHERMAP_COUNTRY "IT"
+#define OPENWEATHERMAP_STATE_CODE "IT"
+#define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/forecast?"
 /*
-    TODO:   multiple city support
-            Weather icons class
-            enhance decoder ( sync frame )
+    TODO:   multiple location support
+            Weather icons class available for all the apps (?)
+            measurement unit conversion (?)
             
 */
 
@@ -203,7 +203,6 @@ void OswAppWeather::drawWeather(){
     }
     //time struct to get the day associated to the incremented timestamp updt_time
     tm* tm_1;
-
     tm* tm_2;
     tm_1 = localtime(&updt_time);
     time_t time = this->init_timestamp;
@@ -298,9 +297,11 @@ void OswAppWeather::weatherRequest(){
     WiFiClientSecure *client = new WiFiClientSecure ;
     client->setCertificate(this->rootCACertificate);
     HTTPClient http;
-    http.begin("https://api.openweathermap.org/data/2.5/forecast?lat=44.91837743102328&lon=8.596110056689&appid=5643586bde5db6443716d934ced6c66a&cnt=24");
+    String url;
+    url += String(OPENWEATHERMAP_URL) + String("q=") + String(OPENWEATHERMAP_CITY) + String(",") + String(OPENWEATHERMAP_STATE_CODE) + String("&appid=") + String(OPENWEATHERMAP_APIKEY) + String("&cnt=24");
+    Serial.println(url);
+    http.begin(url);
     int code = http.GET();
-    int size = http.getSize();
     float temp;
     http.end();
     delete client;
@@ -349,11 +350,9 @@ void OswAppWeather::getDayList(int n_updates){
         timestamp = timestamp + 10800;//TODO: generalize, not only 3h between updates
         mday_prev = time_current->tm_mday;
         time_current = localtime(&timestamp);
-        Serial.println(time_current->tm_mday);
         if (time_current->tm_mday != mday_prev){
             strftime(date_buff, sizeof(date_buff), "%d/%m", localtime(&timestamp));
             day_first_updt.push_back(i);
-            Serial.printf("%s\n",date_buff);
         }
     }
 }
@@ -444,12 +443,12 @@ bool OswAppWeather::loadData(){
     tm* tmx;
     this->getDayList();
     tmx = localtime(&this->init_timestamp);
-    Serial.printf("day :%d\n",tmx->tm_mday);
+    //Serial.printf("day :%d\n",tmx->tm_mday);
     if(strftime(this->init_time_dd_mm_yyyy, sizeof(this->init_time_dd_mm_yyyy), "%d/%m/%Y", localtime(&this->init_timestamp))){
-        Serial.println(this->init_time_dd_mm_yyyy);
+        //Serial.println(this->init_time_dd_mm_yyyy);
     }
     if(strftime(this->init_time_mm_dd, sizeof(this->init_time_mm_dd), "%d/%m", localtime(&this->init_timestamp))){
-        Serial.println(this->init_time_mm_dd);
+        //Serial.println(this->init_time_mm_dd);
     }
     tm_init = localtime(&this->init_timestamp);
     weatherUpdate_t update = decoder.getNext();
@@ -460,9 +459,7 @@ bool OswAppWeather::loadData(){
         this->forecast3days[i].humidity = update.humidity*3.125;
         this->forecast3days[i].pressure = forecast3days[i-1].pressure + ( update.pressure_sgn? update.pressure: -update.pressure);
         if(update.last_update){
-           // i=24;//TODO: handle this condition in a better way
-             Serial.println("i=");
-            Serial.println(i);
+           //i=24;//TODO: handle this condition in a better way
         } else{
             update = decoder.getNext();
             
@@ -472,7 +469,7 @@ return true;
 }
 
 int OswAppWeather::getNextDay(){
-    for(int i=0; i<this->day_first_updt.size()-1;i++){
+    for(int i=0; i<this->day_first_updt.size();i++){
         if(this->day_first_updt[i] > this->updt_selector){
             return this->day_first_updt[i];
         }

@@ -4,10 +4,9 @@
 #include <vector>
 using namespace std;
 
-/*TODO: sync()
-        header mantissa
+/*TODO: header mantissa
         overloading setUpdate( weatherUpdate_t* update, int n_updates)
-        safety
+        test
 */ 
 
 
@@ -22,6 +21,13 @@ typedef struct  {
     bool encode_pressure_long;
     int delta = 3;
 } codingOpt_t;
+
+typedef struct {
+    int weather;
+    float temp;
+    int humidity;
+    int pressure;
+} weather_t;
 
 typedef struct {
   int weather;
@@ -61,20 +67,20 @@ class WeatherEncoder{
     String getEncoded();
 
   private:
-  headerData_t last_header;
-  int last_header_indx; //  index in outData where to put header
-  vector<unsigned char> outData{};
-  vector<uint8_t>::iterator oPtr = outData.begin();
-  char buffer8bit[8];
-  int buffer_indx = 0;
-  int char_cnt = 0;// # of chars in outData 
-  int update_cnt = 0;
-  void _putInBuffer(string in_data);
-  unsigned int _byteToUint(char *bits);
-  unsigned int _byteToUint(string bits);
-  void _writeHeader(string header_bin);
-  void _emptyBuffer();
-  string _addCompl(string s, int len);
+    headerData_t last_header;
+    int last_header_indx; //  index in outData where to put header
+    vector<unsigned char> outData{};
+    vector<uint8_t>::iterator oPtr = outData.begin();
+    char buffer8bit[8];
+    int buffer_indx = 0;
+    int char_cnt = 0;// # of chars in outData 
+    int update_cnt = 0;
+    void _putInBuffer(string in_data);
+    unsigned int _byteToUint(char *bits);
+    unsigned int _byteToUint(string bits);
+    void _writeHeader(string header_bin);
+    void _emptyBuffer();
+    string _addCompl(string s, int len);
 };
 
 WeatherEncoder::WeatherEncoder(codingOpt_t opt){
@@ -99,20 +105,20 @@ void WeatherEncoder::setInitTimeStamp( time_t time ){
 
 void WeatherEncoder::setInitWeather(int init_w ){
   if ( !this->last_header.encode_weather){
-    //TODO, warning
+
   }
   if ( init_w > 15 ){
-    //TODO, warning
+    Serial.println("Warning: weather code is not valid. The code must be an integer <= 15");
   }
   this->last_header.weather_init = init_w;
 }
 
 void WeatherEncoder::setInitTemp(int temp, int temp_mantissa){
   if ( ! this->last_header.encode_temp){
-    //TODO, warning
+  
   }
   if ( temp > 127){
-    //TODO, warning
+    Serial.println("Warning: temeperature is not valid. The value must be a positive integer <= 127");
   }
   this->last_header.temp_init = temp;
   if ( this->last_header.encode_temp_long ){
@@ -122,10 +128,10 @@ void WeatherEncoder::setInitTemp(int temp, int temp_mantissa){
  
 void WeatherEncoder::setInitHumidity(int humidity){
   if (! this->last_header.encode_humidity){
-    //TODO, warning
+    
   }
   if ( humidity > 31 ){
-    //TODO, warning
+    Serial.println("Warning: humidity is not valid. The value must be a positive integer <= 31");
   }
   this->last_header.humidity_init = humidity;
 }
@@ -159,12 +165,9 @@ void WeatherEncoder::_putInBuffer(string in_data){
     this->buffer8bit[buffer_indx] = in_data[i];
     /* empty the buffer */ 
     if ( buffer_indx == 7){
-      Serial.println("buffer:");
-      Serial.println(buffer8bit);
       c = this->_byteToUint(buffer8bit);
       char_cnt++;
       this->outData.push_back(c);
-      Serial.println("push");
       buffer_indx = 0;      
     }else{ 
       buffer_indx++;
@@ -204,7 +207,6 @@ void WeatherEncoder::_writeHeader(string header_bin){
   unsigned char c = 0;
   string cs;
   vector<uint8_t>::iterator it; 
-  size_t n = 1;
   it = outData.begin();
   for(int i = 8; i>= 0; i--){
     str = header_bin.substr(i*8,8);
@@ -216,8 +218,6 @@ void WeatherEncoder::_writeHeader(string header_bin){
 
 void WeatherEncoder::_emptyBuffer(){
   unsigned char c =0;
-  Serial.println("buff:");
-  Serial.println(buffer8bit);
   if(this->buffer_indx != 0){
     for (int i= buffer_indx; i <= 7; i++){
       buffer8bit[i] = '0';
@@ -253,7 +253,7 @@ String WeatherEncoder::getEncoded()
       outData[i]=255;
       complement_ind.push_back(i);
     }
-    Serial.println(outData[i]);
+    // Serial.println(outData[i]);
   }
   String complement_ind_S;
   for(int i=0;i<complement_ind.size();i++){
@@ -263,13 +263,11 @@ String WeatherEncoder::getEncoded()
   complement_ind_S.concat('x');
   complement_ind_S.setCharAt(complement_ind.size(),255);
   String out_S ;
-  for (int i = 0; i <  76; i++){
+  for (int i = 0; i < outData.size(); i++){
     out_S.concat('x');
     out_S.setCharAt(i, outData[i]);
   }
   complement_ind_S.concat(out_S);
-  Serial.println("complement_ins_S");
-  Serial.println(complement_ind_S);
   return complement_ind_S;
 }
 
@@ -299,8 +297,6 @@ void WeatherEncoder::setUpdate(weatherUpdate_t update){
   }
   if (this->last_header.encode_humidity){
       bitset<5> bH = update.humidity; // humidity
-      Serial.println(" update Humidity: ");
-      Serial.println(update.humidity);
       this->_putInBuffer(bH.to_string());
   }
   if (this->last_header.encode_pressure){
@@ -312,8 +308,6 @@ void WeatherEncoder::setUpdate(weatherUpdate_t update){
       if (this->last_header.encode_pressure_long){
         bitset<5> bP = update.pressure; // pressure
         this->_putInBuffer(bP.to_string());
-        Serial.println("pressure: ");
-        Serial.println(update.pressure);
       }else{
         bitset<3> bP = update.pressure; // pressure
         this->_putInBuffer(bP.to_string());
@@ -332,6 +326,8 @@ public:
   headerData_t getHeader();// get header struct 
   weatherUpdate_t getNext();// get next update 
   weatherUpdate_t getPrev();// TODO, to be implemented 
+  weather_t getWeather(time_t time);// TODO, to be implemented 
+  
 private:
   headerData_t _header;
   string _header_str;
@@ -380,10 +376,7 @@ WeatherDecoder::WeatherDecoder(String data){
       j++;
     }
   }
-  
-  Serial.println("data size");
-  // Serial.println(data.size());
-  // Serial.println(data.c_str());
+
   uint8_t header_uint8[9];
   if (data.length()*8<76){
     this->header_is_valid = false;
@@ -394,11 +387,11 @@ WeatherDecoder::WeatherDecoder(String data){
     for(int i=0; i<9;i++){
       header_uint8[i] = uint8_t(in_data[i]);
     }
-    Serial.println("Decoding header: ");
+    Serial.println("Decoding header...");
     for(int i=0;i<9;i++){
       _header_str.append(bitset<8>(header_uint8[i]).to_string());
     }
-    Serial.println(_header_str.c_str());
+    //Serial.println(_header_str.c_str());
     this->_decodeHeader();
     this->_getUpdateSize();
     if(data.length() < 9 + ((update_size)) / 8){
@@ -406,10 +399,6 @@ WeatherDecoder::WeatherDecoder(String data){
       Serial.println("data not valid");
     }
     this->in_data_indx = 9;
-    Serial.println("PROVO print data:");
-    for (int i=0; i<76; i++){
-      Serial.println(in_data[i]);
-    }
     Serial.println("update size:");
     Serial.println(update_size);   
     Serial.println("string size:");
@@ -476,8 +465,6 @@ weatherUpdate_t WeatherDecoder::_readUpdate(){
   if(this->_header.encode_weather){
     bitset<4> bW = bitset<4>(this->_readBuffer(4));
     updt.weather = bW.to_ulong();
-    Serial.println("weather to str: ");
-    Serial.println(bW.to_string().c_str());
   }
   if(this->_header.encode_temp){
     updt.temp_sgn = this->_readBuffer(1)=="1" ? true : false;
@@ -510,13 +497,10 @@ weatherUpdate_t WeatherDecoder::_readUpdate(){
 
 /* get next update */ 
 weatherUpdate_t WeatherDecoder::getNext(){
-  //
   if(data_is_valid && header_is_valid){
     //Serial.println("data valid");
     weatherUpdate_t update;
     update = this->_readUpdate();
-    Serial.println("remaining updates:");
-    Serial.println(this->remaining_updt);
     this->remaining_updt--;
     if(remaining_updt == 0){
       update.last_update = true;
@@ -525,9 +509,13 @@ weatherUpdate_t WeatherDecoder::getNext(){
     }
     return update;
   }else {
-    Serial.println("data broken");
+    Serial.println("broken data");
     weatherUpdate_t broken;
     broken.last_update = true;
     return broken;
   }
+}
+
+weather_t WeatherDecoder::getWeather(time_t time){
+
 }
