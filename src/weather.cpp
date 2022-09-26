@@ -1,13 +1,13 @@
-
 #include "./apps/_experiments/weather.h"
 #include "./services/OswServiceTaskWiFi.h"
 #include <services/OswServiceTasks.h>
 #include <HTTPClient.h>
+#include <cstring>
 #include <gfx_util.h>
 #include <osw_app.h>
 #include <osw_hal.h>
-#include "./apps/examples/OpenWeatherParser.h"
 #include "./fonts/DS_DIGI12pt7b.h"
+#include "./ArduinoJson.h"
 
 #define OPENWEATHERMAP_APIKEY "5643586bde5db6443716d934ced6c66a"
 #define OPENWEATHERMAP_CITY "alessandria"
@@ -19,6 +19,268 @@
             measurement unit conversion (?)
             
 */
+
+class WeatherEncoder {
+    public:
+      WeatherEncoder();
+      bool setUpdate(weather_update_t update);
+      bool setTimestamp(time_t t);
+      string getEncoded();
+
+    private:
+      string _time2str(time_t time);
+      string _temp2str(int temp);
+      string _hum2str(int humidity);
+      string _pres2str(int pressure);
+      string _wthr2str(int weather);
+      bool time_loaded = false;
+      time_t timestamp;
+      string updates;
+};
+
+WeatherEncoder::WeatherEncoder(){}
+
+bool WeatherEncoder::setUpdate(weather_update_t update){
+    bool update_ok = true;
+    if(update.temp > 99 || update.temp < -99 ){update_ok = false;}
+    if(update.humidity > 100 || update.humidity < 0) {update_ok = false;}
+    if(update.pressure < 0 || update.pressure > 2000 ) {update_ok = false;}
+    if(update.weather < 0 || update.weather > 15) {update_ok = false;}
+    if(!update_ok){return false;}
+    string update_s;
+    update_s.append(_temp2str(update.temp));
+    update_s.append(_hum2str(update.humidity));
+    update_s.append(_pres2str(update.pressure));
+    update_s.append(_wthr2str(update.weather));
+    this->updates.append(update_s);
+    return true;
+
+}
+
+bool WeatherEncoder::setTimestamp(time_t t){
+  if(t > 0 && t < 2147483647 ){
+    this->timestamp = t;
+    this->time_loaded = true;
+    return true;
+  }
+  return false;
+}
+
+string WeatherEncoder::getEncoded(){
+  if(this->time_loaded){
+    string encoded;
+    encoded.append(_time2str(this->timestamp));
+    encoded.append(this->updates);
+    return encoded;
+  }else{
+    return "error_no_timestamp";
+  }
+}
+
+string WeatherEncoder::_time2str(time_t time){
+    time =  2147483647 - time ; // time = seconds to end of the epoch 01/19/2038 3:14 AM 
+    time = time / 8 ;
+    char time_dgts[9];
+    sprintf(time_dgts,"%08ld",time);
+    return time_dgts;
+  }
+
+string WeatherEncoder::_temp2str(int temp){
+  string temp_s;
+  if (temp > 0){
+    temp_s.append("+");
+  }else{
+    temp_s.append("-");
+  }
+  char temp_dgts[3];
+  sprintf(temp_dgts,"%02d",abs(temp));
+  temp_s.append(temp_dgts);
+  return temp_s;
+}
+
+string WeatherEncoder::_hum2str(int humidity){
+  if(humidity == 100){humidity = 99;}
+  char h[2];
+  sprintf(h,"%d",humidity/10);
+  return h;
+}
+
+string WeatherEncoder::_pres2str(int pressure){
+  pressure = pressure - 850; 
+  if(pressure < 0){pressure = 0;}
+  if(pressure > 999){pressure = 999;}
+  string pres_s;
+  char pres_dgts[3];
+  sprintf(pres_dgts,"%03d",abs(pressure));
+  pres_s.append(pres_dgts);
+  return pres_s;
+}
+
+string WeatherEncoder::_wthr2str(int weather){
+  char w[2];
+  sprintf(w,"%c",weather+65);
+  return w;
+}
+
+
+
+class WeatherDecoder{
+  public:
+    WeatherDecoder(string input_string);
+    bool strIsValid();
+    time_t getTime();
+    vector<weather_update_t> getUpdates();
+  private:
+    time_t _str2time(string t);
+    int _str2temp(string temp);
+    int _str2hum(string humidity);
+    int _str2pres(string pressure);
+    int _str2wthr(string weather);
+    bool in_ok = true;
+    int n_updates = 0;
+    string in_string;
+};
+
+WeatherDecoder::WeatherDecoder(string input_string){
+  //TODO: more accurate input ctrl
+  if(input_string.length() <  16 || (input_string.length()%8)!= 0 ){
+    this->in_ok = false;
+  }
+  this->in_string = input_string;
+  this->n_updates = (this->in_string.length()-8)/8;
+}
+
+bool WeatherDecoder::strIsValid(){
+  return in_ok;
+}
+
+time_t WeatherDecoder::getTime(){
+  string time_str = this->in_string.substr(0,8);
+  time_t t = this->_str2time(time_str);
+  return t;
+}
+
+vector<weather_update_t> WeatherDecoder::getUpdates(){
+  weather_update_t update;
+  string update_str;
+  vector<weather_update_t> updates;
+  for (int i=0 ; i<n_updates; i++){
+    update_str = this->in_string.substr(8 + (8*i), 8);
+    update.temp = this->_str2temp(update_str.substr(0,3));
+    update.humidity = this->_str2hum(update_str.substr(3,1));
+    update.pressure = this->_str2pres(update_str.substr(4,3));
+    update.weather = this->_str2wthr(update_str.substr(7,1));
+    updates.push_back(update);
+  }
+  return updates;
+}
+
+time_t WeatherDecoder::_str2time(string t){
+  int time = stoi(t);
+  time = time * 8;
+  time = 2147483647 - time;
+  return time;
+}
+
+int WeatherDecoder::_str2temp(string temp){
+  int temp_int = stoi(temp);
+  return temp_int;
+}
+
+int WeatherDecoder::_str2hum(string humidity){
+  int hum = (stoi(humidity)*10) + 5;
+  return hum;
+}
+
+int WeatherDecoder::_str2pres(string pressure){
+  int pres = stoi(pressure) + 850;
+  return pres;
+}
+
+int WeatherDecoder::_str2wthr(string weather){
+  char wthr = weather[0];
+  return wthr - 65;
+}
+
+
+
+class WeatherParser{
+  public:
+    WeatherParser();
+    string encodeWeather(DynamicJsonDocument& doc);
+  private:
+    int _getWCond(int weather_code);
+    int cnt;
+    vector<weather_update_t> updates;
+    vector<int> clear_code{800};//0
+    vector<int>clouds_min{801};//1
+    vector<int>clouds_med{802};//2
+    vector<int>clouds_high{803, 804};//3
+    vector<int>mist{701};//4
+    vector<int>fog{741};//5
+    vector<int>snow_min{611, 612, 615, 616};//6
+    vector<int>snow_med{600, 613, 601, 620};//7
+    vector<int>snow_high{602, 621, 622};//8
+    vector<int>rain_min{500, 300, 301, 302, 310, 311, 312, 313, 314, 321};//9
+    vector<int>rain_med{502, 501};//10
+    vector<int>rain_high{503, 504, 511, 520, 521, 522, 531};//11
+    vector<int>thunderstorm{200, 201, 210, 211, 231, 230};//12
+    vector<int>thunderstorm_heavy{202, 212, 221, 232};//13
+    vector<int>squall_tornado{771, 781};//14
+    //15 ->unknown
+    vector<vector<int>>weather_conditions{clear_code, clouds_min, clouds_med, clouds_high, mist, fog, snow_min, snow_med, 
+                                          snow_high, rain_min, rain_med, rain_high, thunderstorm, 
+                                          thunderstorm_heavy, squall_tornado };
+};
+
+WeatherParser::WeatherParser(){}
+
+string WeatherParser::encodeWeather(DynamicJsonDocument& doc){
+  const char* code = nullptr;
+  code = doc["cod"];
+  if(strcmp("200",code)){
+    if(code==nullptr){
+      Serial.println("Error, corrupted API response.");
+      return  "ERROR_CORRUPTED_RESPONSE";
+    }else{
+      Serial.print("Error, response code: ");
+      Serial.println(code);
+      return "ERROR_API_RESPONSE";
+    }
+  }
+  cnt = doc["cnt"];
+  time_t time = doc["list"][0]["dt"];
+  WeatherEncoder encoder;
+  encoder.setTimestamp(time);
+  bool res;
+  for(int i=0; i<cnt; i++){
+    weather_update_t update;
+    int temp = doc["list"][i]["main"]["temp"];
+    update.temp = temp - 273;
+    update.humidity = doc["list"][i]["main"]["humidity"];
+    int pressure = doc["list"][i]["main"]["pressure"];
+    update.pressure = pressure;
+    update.weather = this->_getWCond(doc["list"][i]["weather"][0]["id"]);
+    res = encoder.setUpdate(update);
+    if (!res){
+      return "ERROR_INPUT";
+    }
+  }
+  return encoder.getEncoded();
+}
+
+int WeatherParser::_getWCond(int weather_code){
+  for(int i=0; i<15; i++){
+    for(int j=0; j < weather_conditions[i].size(); j++){
+      if(weather_code == weather_conditions[i][j]){
+        return i;
+      }
+    }
+  }
+  return 15; // unknown weather def 
+}
+
+
 
 
 void OswAppWeather::drawSun(int x, int y, int radius ){
@@ -114,75 +376,78 @@ void OswAppWeather::drawFog(int x, int y, int mist_fog)
 }
 
 void OswAppWeather::drawWeatherIcon(){
-    switch (this->forecast3days[this->updt_selector].weather)
-    {
-    case 0:
-        this->drawSun(120,45);//TODO: draw sun/moon 
-        break;
-    case 1:
-        this->drawCloud(98,30);
-        break;
-    case 2:
-        this->drawCloud(108-24,30,rgb888(254,254,254),1);
-        this->drawCloud(98,30);
-        break;
-    case 3:
-        this->drawCloud(108-24,30,rgb888(252,252,252),1);
-        this->drawCloud(98,30,rgb888(254,254,254),1);
-        break;
-    case 4://mist
-        this->drawFog(110,40,1);
-        break;
-    case 5://fog
-        this->drawFog(110,40,2);
-        break;
-    case 6://snow min
-        this->drawCloud(98,30);
-        this->drawSnow(110,66,1);
-        break;
-    case 7://snow med
-        this->drawCloud(98,30);
-        this->drawSnow(110,66,2);
-        break;
-    case 8://snow high
-        this->drawCloud(98,30);
-        this->drawSnow(110,66,3);
-        break;
-    case 9://rain min
-        this->drawCloud(98,30);
-        this->drawRain(115,65);
-        break;
-    case 10://rain med
-        this->drawCloud(108-24,30,rgb888(252,252,252),1);
-        this->drawCloud(98,30,rgb888(254,254,254),1);
-        this->drawRain(115,65);
-        break;
-    case 11://rain heavy
-        this->drawCloud(108-24,30,rgb888(250,250,250),1);
-        this->drawCloud(98,30,rgb888(252,252,252),1);
-        this->drawRain(115,65);
-        break;
-    case 12://thunderstorm
-        this->drawCloud(108-24,30,rgb888(252,252,252),1);
-        this->drawCloud(98,30,rgb888(254,254,254),1);
-        this->drawRain(115,65);
-        this->drawThunderBolt(115,65);
-        break;
-    case 13://thunderstorm heavy 
-        this->drawCloud(108-24,30,rgb888(250,250,250),1);
-        this->drawCloud(98,30,rgb888(252,252,252),1);
-        this->drawRain(115,65);
-        this->drawThunderBolt(115,65);
-        break;
-    case 14://squall or tornado 
-        this->hal->gfx()->setTextCursor(120,30);
-        this->hal->gfx()->print("sqall/tornado!!");
-    default:
-        //unknown
-        this->hal->gfx()->setTextCursor(120,30);
-        this->hal->gfx()->print("?");
-        break;
-    }
+    int x = 120;
+    int y = 45;
+    switch (this->forecast[this->updt_selector].weather)
+   {
+  case 0: // sun
+    this->drawSun(x,y);
+    break;
+  case 1: //clouds min
+    this->drawSun(x-15, y-5);
+    this->drawCloud(x-22,y-15);
+    break;
+  case 2: //clouds medium
+    this->drawCloud(x-22,y-15);
+    break;
+  case 3: //heavy clouds
+    this->drawCloud(x-22,y-15,rgb888(253,253,253),1);
+    this->drawCloud(x-12,y-15);
+    break;
+  case 4://mist
+    this->drawFog(x-10,y,0);
+    break;
+  case 5://fog
+    this->drawFog(x-10,y,1);
+    break;
+  case 6: //snow min
+    this->drawSnow(x-10,y+20,1);
+    this->drawCloud(x-22,y-15);
+    break;
+  case 7: //snow med
+    this->drawSnow(x-10,y+20,2);
+    this->drawCloud(x-22,y-15);
+    break;
+  case 8: //snow heavy
+    this->drawSnow(x-10,y+20,3);
+    this->drawCloud(x-22,y-15);
+    break;
+  case 9: //rain min
+    this->drawRain(x-5,y+20);
+    this->drawSun(x-15, y-5);
+    this->drawCloud(x-22,y-15);
+    break;
+  case 10: //rain med
+    this->drawCloud(x-22,y-15);
+    this->drawRain(x-5,y+20);
+    break;
+  case 11: //rain heavy
+    this->drawCloud(x-22,y-15,rgb888(253,253,253),1);
+    this->drawCloud(x-12,y-15);
+    this->drawRain(x-5,y+20);
+    break;
+  case 12: //thunderstorm 1
+    this->drawCloud(x-22,y-15);
+    //this->drawRain(x,y+20);
+    this->drawThunderBolt(x+5,y+20);
+    break;
+  case 13: //thunderstorm 1
+    this->drawThunderBolt(x+5,y+20);
+    this->drawThunderBolt(x+20,y+18);
+    this->drawCloud(x-22,y-15,rgb888(253,253,253),1);
+    this->drawCloud(x-12,y-15);
+    break;
+  case 14:
+    this->hal->gfx()->setTextCursor(120,45);
+    this->hal->gfx()->print("!Danger!");
+    break;
+  case 15: //unknown
+    this->hal->gfx()->setTextCursor(120,45);
+    this->hal->gfx()->print("?");
+
+  default:
+    break;
+  }
 }
 
 
@@ -229,15 +494,15 @@ void OswAppWeather::drawWeather(){
     // }
 
     //weather data 
-    sprintf(this->buffer,"t:%3.2f",this->forecast3days[this->updt_selector].temperature);
+    sprintf(this->buffer,"t:%2d",this->forecast[this->updt_selector].temp);
     this->hal->gfx()->setTextCursor(120 , 90);
     this->hal->gfx()->print(buffer);
 
-    sprintf(this->buffer,"H:%d%%",this->forecast3days[this->updt_selector].humidity);
+    sprintf(this->buffer,"H:%d%%",this->forecast[this->updt_selector].humidity);
     this->hal->gfx()->setTextCursor(120 , 119);
     this->hal->gfx()->print(buffer);
 
-    sprintf(this->buffer, "p:%d",this->forecast3days[this->updt_selector].pressure);
+    sprintf(this->buffer, "p:%d",this->forecast[this->updt_selector].pressure);
     this->hal->gfx()->setTextCursor(120 , 148);
     this->hal->gfx()->print(buffer);
 }
@@ -294,47 +559,55 @@ void OswAppWeather::printLastUpdate(){
 }
 
 void OswAppWeather::weatherRequest(){
+  if(!OswServiceAllTasks::wifi.isConnected()){
+    OswServiceAllTasks::wifi.enableWiFi();
+    OswServiceAllTasks::wifi.connectWiFi();  
+  }
+  this->request_mode = true;
+}
+
+void OswAppWeather::_request(){
     WiFiClientSecure *client = new WiFiClientSecure ;
     client->setCertificate(this->rootCACertificate);
     HTTPClient http;
-    String url;
-    url += String(OPENWEATHERMAP_URL) + String("q=") + String(OPENWEATHERMAP_CITY) + String(",") + String(OPENWEATHERMAP_STATE_CODE) + String("&appid=") + String(OPENWEATHERMAP_APIKEY) + String("&cnt=24");
-    Serial.println(url);
+    String url = "https://api.openweathermap.org/data/2.5/forecast?lat=44.91837743102328&lon=8.596110056689&appid=5643586bde5db6443716d934ced6c66a&cnt=24";
+    // url += String(OPENWEATHERMAP_URL) + String("q=") + String(OPENWEATHERMAP_CITY) + String(",") + String(OPENWEATHERMAP_STATE_CODE) + String("&appid=") + String(OPENWEATHERMAP_APIKEY) + String("&cnt=24");
+    // Serial.println(url);
+
     http.begin(url);
     int code = http.GET();
     float temp;
     http.end();
     delete client;
     OswServiceAllTasks::wifi.disconnectWiFi();
+    Serial.println("code");
     if (code > 0){
         DynamicJsonDocument doc(16432);
         deserializeJson(doc,http.getStream());
-        temp = doc["list"][0]["main"]["temp"];
-        codingOpt_t options;
-        options.delta=3;
-        options.encode_humidity = true;
-        options.encode_pressure = true;
-        options.encode_temp = true;
-        options.encode_weather = true;
-        options.encode_pressure_long = true;
-        options.encode_temp_long = true;
-        OpenWeatherParser pars(options);
-        String encoded = pars.encodeWeather(doc);
+        WeatherParser pars;
+        string encoded = pars.encodeWeather(doc);
+        int encoded_len = encoded.length();
+        char encoded_arr[encoded_len + 1];//TODO: cleaner conversion?
+        strcpy(encoded_arr, encoded.c_str());
+        String encoded_S = String(encoded_arr);
         OswConfig::getInstance()->enableWrite();
-        OswConfigAllKeys::weather.set(encoded);
+        OswConfigAllKeys::weather.set(encoded_S);
         OswConfig::getInstance()->disableWrite();
         // wEncoder.setUpdate(updt_);
         // Serial.println("Updated");
         // string encoded = wEncoder.getEncoded();
         // Serial.println("get encoded");
         // OswConfigAllKeys::weather.set(encoded.c_str());
-        // Serial.println("Weather updated");
-
-        
+        // Serial.println("Weather updated");   
+    }else{
+        Serial.println("Error: API response");
+    }
+    this->request_mode=false;
+    bool res = this->loadData();
+    if (res){
+      Serial.println("weather updated correctly");
     }
 }
-
-
 
   
 void OswAppWeather::getDayList(int n_updates){
@@ -347,7 +620,7 @@ void OswAppWeather::getDayList(int n_updates){
     strftime(date_buff, sizeof(date_buff), "%d/%m", localtime(&this->init_timestamp));
     this->day_first_updt.push_back(0);
     for(int i=1; i<24; i++){
-        timestamp = timestamp + 10800;//TODO: generalize, not only 3h between updates
+        timestamp = timestamp + (3600*3);
         mday_prev = time_current->tm_mday;
         time_current = localtime(&timestamp);
         if (time_current->tm_mday != mday_prev){
@@ -432,18 +705,15 @@ bool OswAppWeather::loadData(){
     Serial.println("size of wstr: ");
     Serial.println(wstr.length());
     Serial.println("....");
-    
-    WeatherDecoder decoder(OswConfigAllKeys::weather.get());
-    headerData_t header = decoder.getHeader();
-    this->forecast3days[0].weather = header.weather_init;
-    this->forecast3days[0].temperature = header.temp_init - 64;
-    this->forecast3days[0].humidity = header.humidity_init * 3.125;
-    this->forecast3days[0].pressure = header.pressure_init + 850;
-    this->init_timestamp = header.timestamp * 4;
+    //TODO: test decoded data
+    if( (wstr.length() % 8) != 0 ){this->data_loaded = false; return false;}
+    if( wstr.length()<16){this->data_loaded = false; return false;}
+    WeatherDecoder decoder(wstr.c_str());
+    this->init_timestamp = decoder.getTime();
     tm* tmx;
     this->getDayList();
     tmx = localtime(&this->init_timestamp);
-    //Serial.printf("day :%d\n",tmx->tm_mday);
+    Serial.printf("day :%d\n",tmx->tm_mday);
     if(strftime(this->init_time_dd_mm_yyyy, sizeof(this->init_time_dd_mm_yyyy), "%d/%m/%Y", localtime(&this->init_timestamp))){
         //Serial.println(this->init_time_dd_mm_yyyy);
     }
@@ -451,20 +721,8 @@ bool OswAppWeather::loadData(){
         //Serial.println(this->init_time_mm_dd);
     }
     tm_init = localtime(&this->init_timestamp);
-    weatherUpdate_t update = decoder.getNext();
-    //TODO: generalize, not only 24 updates with an update each 3h, but also different period between updates
-    for(int i=1; i<24; i++){
-        this->forecast3days[i].weather = update.weather;
-        this->forecast3days[i].temperature = forecast3days[i-1].temperature + (update.temp_sgn?   (update.temp + (0.25*update.temp_mantissa)) : -(update.temp + (0.25*update.temp_mantissa))   );
-        this->forecast3days[i].humidity = update.humidity*3.125;
-        this->forecast3days[i].pressure = forecast3days[i-1].pressure + ( update.pressure_sgn? update.pressure: -update.pressure);
-        if(update.last_update){
-           //i=24;//TODO: handle this condition in a better way
-        } else{
-            update = decoder.getNext();
-            
-        }
-    }
+    forecast = decoder.getUpdates();
+    this->data_loaded = true;
 return true;
 }
 
@@ -494,11 +752,22 @@ void OswAppWeather::setup() {
 void OswAppWeather::loop() {
 
     this->drawLayout();
-    this->drawWeather();   
-    this->printDate();
-    this->printLastUpdate();
+    if(this->data_loaded){
+        this->drawWeather();   
+        this->printDate();
+        this->printLastUpdate();
+    }
+    if(this->request_mode){
+       if (OswServiceAllTasks::wifi.isConnected()) {
+          this->_request();
+       }else{
+        //TODO:pop-up
+        this->hal->gfx()->setTextCursor(120,100);
+        this->hal->gfx()->setTextSize(2);
+        this->hal->gfx()->print("loading...");
+       }
+    }
     this->hal->requestFlush(); 
-
     if (hal->btnHasGoneDown(BUTTON_2)) {
             if(this->main_selector==1){// next update
                 if(this->updt_selector<23) {this->updt_selector++;}
@@ -510,7 +779,6 @@ void OswAppWeather::loop() {
                     this->updt_selector = this->getNextDay();
                 }
             }
-
     }
     if (hal->btnHasGoneDown(BUTTON_3)) {
        
@@ -527,7 +795,6 @@ void OswAppWeather::loop() {
         if(this->main_selector==2){
             this->weatherRequest();
         }
-
     }
     if( hal->btnHasGoneDown(BUTTON_1)){
         if(this->main_selector!=2){
@@ -542,4 +809,3 @@ void OswAppWeather::loop() {
 void OswAppWeather::stop() {
 
 }
-
