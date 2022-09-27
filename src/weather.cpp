@@ -566,21 +566,27 @@ void OswAppWeather::weatherRequest(){
   this->request_mode = true;
 }
 
-void OswAppWeather::_request(){
+bool OswAppWeather::_request(){
     WiFiClientSecure *client = new WiFiClientSecure ;
     client->setCertificate(this->rootCACertificate);
     HTTPClient http;
     String url = "https://api.openweathermap.org/data/2.5/forecast?lat=44.91837743102328&lon=8.596110056689&appid=5643586bde5db6443716d934ced6c66a&cnt=24";
     // url += String(OPENWEATHERMAP_URL) + String("q=") + String(OPENWEATHERMAP_CITY) + String(",") + String(OPENWEATHERMAP_STATE_CODE) + String("&appid=") + String(OPENWEATHERMAP_APIKEY) + String("&cnt=24");
-    // Serial.println(url);
+    Serial.println(url);
 
     http.begin(url);
-    int code = http.GET();
-    float temp;
+    int code = 0;
+    if (OswServiceAllTasks::wifi.isConnected()) {
+        sleep(2);
+        code = http.GET();
+    }else{
+      return false;
+    }
     http.end();
     delete client;
     OswServiceAllTasks::wifi.disconnectWiFi();
     Serial.println("code");
+    Serial.println(code);
     if (code > 0){
         DynamicJsonDocument doc(16432);
         deserializeJson(doc,http.getStream());
@@ -603,10 +609,11 @@ void OswAppWeather::_request(){
         Serial.println("Error: API response");
     }
     this->request_mode=false;
-    bool res = this->loadData();
-    if (res){
-      Serial.println("weather updated correctly");
-    }
+    return true;
+   // bool res = this->loadData();
+    // if (res){
+    //   Serial.println("weather updated correctly");
+    // }
 }
 
   

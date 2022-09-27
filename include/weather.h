@@ -97,7 +97,7 @@ class OswAppWeather : public OswApp {
     "nLRbwHOoq7hHwg=="\
     "-----END CERTIFICATE-----";
     private:
-      void _request();
+      bool _request();
 };
 
 #endif
