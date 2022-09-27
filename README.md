@@ -27,3 +27,6 @@ A simple weather app for Open-SmartWatch.
  * It's possible to download the updates only if the WiFi is already enabled and connected before clicking "sync"
 ## TODO
 * Multiple locations 
+
+## Credits
+For the Graphical user interface i took inspiration from the issue [152](https://github.com/Open-Smartwatch/open-smartwatch-os/issues/152) and in particular from a proposal of Kokofruits1. 
