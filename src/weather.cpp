@@ -12,7 +12,7 @@
 #define OPENWEATHERMAP_APIKEY "5643586bde5db6443716d934ced6c66a"
 #define OPENWEATHERMAP_CITY "alessandria"
 #define OPENWEATHERMAP_STATE_CODE "IT"
-#define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/forecast?"
+#define OPENWEATHERMAP_URL "https://api.openweathermap.org/data/2.5/forecast?"
 /*
     TODO:   multiple location support
             Weather icons class available for all the apps (?)
@@ -569,15 +569,14 @@ void OswAppWeather::weatherRequest(){
 bool OswAppWeather::_request(){
     WiFiClientSecure *client = new WiFiClientSecure ;
     client->setCertificate(this->rootCACertificate);
-    HTTPClient http;
-    String url = "https://api.openweathermap.org/data/2.5/forecast?lat=44.91837743102328&lon=8.596110056689&appid=5643586bde5db6443716d934ced6c66a&cnt=24";
+    HTTPClient http; ///45.063351676144315, 7.661340617227706
+    String url = "https://api.openweathermap.org/data/2.5/forecast?lat=45.063351676144315&lon=7.661340617227706&appid=5643586bde5db6443716d934ced6c66a&cnt=24";
     // url += String(OPENWEATHERMAP_URL) + String("q=") + String(OPENWEATHERMAP_CITY) + String(",") + String(OPENWEATHERMAP_STATE_CODE) + String("&appid=") + String(OPENWEATHERMAP_APIKEY) + String("&cnt=24");
     Serial.println(url);
 
     http.begin(url);
     int code = 0;
     if (OswServiceAllTasks::wifi.isConnected()) {
-        sleep(2);
         code = http.GET();
     }else{
       return false;
