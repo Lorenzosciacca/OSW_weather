@@ -29,4 +29,4 @@ A simple weather app for Open-SmartWatch.
 * Multiple locations 
 
 ## Credits
-For the Graphical user interface i took inspiration from the issue [152](https://github.com/Open-Smartwatch/open-smartwatch-os/issues/152) and in particular from a proposal of Kokofruits1. 
+For the Graphical user interface i took inspiration from the issue [152](https://github.com/Open-Smartwatch/open-smartwatch-os/issues/152) and in particular from Kokofruits1's proposal. 
