@@ -1,6 +1,7 @@
-# OSW_weather
+# OSW_weather(Discontinued)
 A simple weather app for Open-SmartWatch.
-
+## Note
+  This code is now part of a pending pull request on the OSW develop branch
 ## Prerequiremets
   - OSW_FEATURE_WIFI : visit [this](https://open-smartwatch.github.io/resources/firmware/) link for more details.
   - a valid API [key](https://openweathermap.org/api) ( free plan )
