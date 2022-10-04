@@ -28,7 +28,7 @@ If you get an answer like this: `{"cod":"200" ... ` both api key and location ar
 
 ## Usage
 ### Overview
-![screen](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sync.png)
+![screen](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sync.png)   
 After the installation you will notice that there are no updates to show, in order to get the updates, press the top right button `update`. A pop-up should appear, the operation will take a few seconds.  
 ### Units
 - Temperature: °C
