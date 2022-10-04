@@ -21,15 +21,15 @@ If you want to configure the app without using the web UI you can set:
 - `OPENWEATHERMAP_CITY`, city name
 - `OPENWEATHERMAP__STATE_CODE`, the two letter iso code of the country of your interest    
 
-If you are not sure about the geociding you can perform a simple test.
+If you are not sure about the geocoding you can perform a simple test.
 Type in the address bar of your browser: "https://api.openweathermap.org/data/2.5/forecast?q=CITY,STATE&appid=APIKEY&cnt=24 "
-substituting `CITY`, `STATE` and `APIKEY` with: city name, two letters code and api key. Beware not to past addiotional characters, the country code must be separated by a comma from the city name.
+substituting `CITY`, `STATE` and `APIKEY` with: city name, two letters code and api key. Beware not to past additional characters, the country code must be separated by a comma from the city name.
 If you get an answer like this: `{"cod":"200" ... ` both api key and location are valid.
 
 ## Usage
 ### Overview
 ![screen](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sync.png)
-After the installatin you will notice that there are no updates to show, in order to get the updates press the top right button `update`. A pop-up should appear, the operation will take a few seconds.  
+After the installation you will notice that there are no updates to show, in order to get the updates, press the top right button `update`. A pop-up should appear, the operation will take a few seconds.  
 ### Units
 - Temperature: °C
 - Humidity: relative [humidity](https://en.wikipedia.org/wiki/Humidity#Relative_humidity)
