@@ -1,4 +1,15 @@
 # OSW WEATHER
+
+- [How to install](#how-to-install)
+- [Getting the API key](#getting-the-api-key)
+- [Configuration](#configuration)
+  * [Web UI](#web-ui)
+  * [Without web UI](#without-web-ui)
+- [Usage](#usage)
+  * [Overview](#overview)
+  * [Units](#units)
+  * [Weather conditions](#weather-conditions)
+
 ## How to install
 - Add the flag OSW_FEATURE_WEATHER to the file platformio.ini  
 
@@ -15,11 +26,13 @@ It's possible to configure the app from both the web UI and the configuration fi
 - Write the name of the location of your interest in the field `City name`
 - Write the two letters iso code of the country associated with your location in the field `Country code`. You can search the two letters code of a given country [here](https://www.iso.org/obp/ui/#home) selecting `country codes`.
 - Save
-### config_defaults.h
-If you want to configure the app without using the web UI you can set:
+### Without web UI
+If you want to configure the app without using the web UI you can set the followings values in config_defaults.h:
 - `OPENWEATHERMAP_APIKEY`, the api key
 - `OPENWEATHERMAP_CITY`, city name
 - `OPENWEATHERMAP__STATE_CODE`, the two letter iso code of the country of your interest    
+
+
 
 If you are not sure about the geocoding you can perform a simple test.
 Type in the address bar of your browser: "https://api.openweathermap.org/data/2.5/forecast?q=CITY,STATE&appid=APIKEY&cnt=24 "
