@@ -3,7 +3,7 @@
 - Add the flag OSW_FEATURE_WEATHER to the file platformio.ini  
 
 ## Getting the API key
-The weather updates are provided by openweathermap.org, so you need a valid openweather API key. 
+The weather updates are provided by openweathermap.org, so you need a valid API key. 
 - Create an account [here](https://openweathermap.org/)
 - Select a free [plan](https://openweathermap.org/price)
 - From your account select "my API keys" and generate a key.
@@ -30,6 +30,16 @@ If you get an answer like this: `{"cod":"200" ... ` both api key and location ar
 ### Overview
 ![screen](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sync.png)   
 After the installation you will notice that there are no updates to show, in order to get the updates, press the top right button `update`. A pop-up should appear, the operation will take a few seconds.  
+
+The bottom left button allows the user to select:  
+
+current update  
+![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/h.png)
+
+the current day  
+![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/day.png)
+
+The / \  and \ /  arrows are used to decrease/increase the current selection ( day or update ) .
 ### Units
 - Temperature: °C
 - Humidity: relative [humidity](https://en.wikipedia.org/wiki/Humidity#Relative_humidity)
