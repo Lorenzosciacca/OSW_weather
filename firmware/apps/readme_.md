@@ -12,7 +12,7 @@
 
 ## How to install
 - Add the flag OSW_FEATURE_WEATHER to the file platformio.ini  
-![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/example_ini.png)
+![](../../assets/apps/OswWeather/example_ini.png)
 
 ## Getting the API key
 The weather updates are provided by openweathermap.org, so you need a valid API key. 
