@@ -63,7 +63,7 @@ Visit [this link](https://openweathermap.org/weather-conditions#Weather-Conditio
 | Icon | # | Description | Openweathermap code |
 |------|---|-------------|------------------|
 |![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sun.png) | 0 | Clear |800  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/cl1.png) | 1 | Clouds min. |801  |
+|![](./osw_screen/cl1.png) | 1 | Clouds min. |801  |
 |![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/cl2.png) | 2 | Clouds med. |802  |
 |![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/cl3.png) | 3 | Clouds heavy |803, 804 |
 |![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/mist.png) | 4 | Mist |701  |
