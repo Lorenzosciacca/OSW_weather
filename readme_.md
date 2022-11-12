@@ -12,14 +12,14 @@
 
 ## How to install
 - Add the flag OSW_FEATURE_WEATHER to the file platformio.ini  
-![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/example_ini.png)
+![](./osw_screen/example_ini.png)
 
 ## Getting the API key
 The weather updates are provided by openweathermap.org, so you need a valid API key. 
 - Create an account [here](https://openweathermap.org/)
 - Select a free [plan](https://openweathermap.org/price)
 - From your account select "my API keys" and generate a key.
-![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/key.png)
+![](./osw_screen/key.png)
 ## Configuration
 It's possible to configure the app from both the web UI and the configuration file `config_defaults.h`
 ### Web UI
@@ -42,16 +42,16 @@ If you get an answer like this: `{"cod":"200" ... ` both api key and location ar
 
 ## Usage
 ### Overview
-![screen](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sync.png)   
+![screen](./osw_screen/sync.png)   
 After the installation you will notice that there are no updates to show, in order to get the updates, press the top right button `update`. A pop-up should appear, the operation will take a few seconds.  
 
 The bottom left button allows the user to select:  
 
 current update  
-![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/h.png)
+![](./osw_screen/h.png)
 
 the current day  
-![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/day.png)
+![](./osw_screen/day.png)
 
 The / \  and \ /  arrows are used to decrease/increase the current selection ( day or update ) .
 ### Units
