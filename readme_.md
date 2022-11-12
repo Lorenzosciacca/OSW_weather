@@ -62,20 +62,20 @@ The / \  and \ /  arrows are used to decrease/increase the current selection ( d
 Visit [this link](https://openweathermap.org/weather-conditions#Weather-Condition-Codes-2) for a more detailed description of each weather condition.
 | Icon | # | Description | Openweathermap code |
 |------|---|-------------|------------------|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/sun.png) | 0 | Clear |800  |
+|![](./osw_screen/sun.png) | 0 | Clear |800  |
 |![](./osw_screen/cl1.png) | 1 | Clouds min. |801  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/cl2.png) | 2 | Clouds med. |802  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/cl3.png) | 3 | Clouds heavy |803, 804 |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/mist.png) | 4 | Mist |701  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/fog.png) | 5 | Fog |741  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/snow1.png) | 6 | Snow min. |611, 612, 615, 616  |
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/snow2.png) | 7 | Snow med. |600, 613, 601, 620|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/snow3.png) | 8 | Snow heavy |602, 621, 622|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/rain1.png) | 9 | Rain min. |500, 300, 301, 302, 310, 311, 312, 313, 314, 321|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/rain2.png) | 10 | Rain med. |501, 502|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/rain3.png) | 11 | Rain heavy |503, 504, 511, 520, 521, 522, 531|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/th1.png) | 12 | Thunderstorm  |200, 201, 210, 211, 231, 230|
-|![](https://raw.githubusercontent.com/Lorenzosciacca/OSW_weather/main/osw_screen/th2.png) | 13 | Thunderstorm heavy  |202, 212, 221, 232|
+|![](./osw_screen/cl2.png) | 2 | Clouds med. |802  |
+|![](./osw_screen/cl3.png) | 3 | Clouds heavy |803, 804 |
+|![](./osw_screen/mist.png) | 4 | Mist |701  |
+|![](./osw_screen/fog.png) | 5 | Fog |741  |
+|![](./osw_screen/snow1.png) | 6 | Snow min. |611, 612, 615, 616  |
+|![](./osw_screen/snow2.png) | 7 | Snow med. |600, 613, 601, 620|
+|![](./osw_screen/snow3.png) | 8 | Snow heavy |602, 621, 622|
+|![](./osw_screen/rain1.png) | 9 | Rain min. |500, 300, 301, 302, 310, 311, 312, 313, 314, 321|
+|![](./osw_screen/rain2.png) | 10 | Rain med. |501, 502|
+|![](./osw_screen/rain3.png) | 11 | Rain heavy |503, 504, 511, 520, 521, 522, 531|
+|![](./osw_screen/th1.png) | 12 | Thunderstorm  |200, 201, 210, 211, 231, 230|
+|![](./osw_screen/th2.png) | 13 | Thunderstorm heavy  |202, 212, 221, 232|
 | ! | 14 | Squall/tornado  |771, 781|
 | ? | 15 | Unknown  ||
 
